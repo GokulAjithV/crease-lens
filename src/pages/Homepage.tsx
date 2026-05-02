@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Play, Plus, RotateCcw, Share2, Trophy } from 'lucide-react';
+import { Play, Plus, RotateCcw, Share2, Trophy, Sparkles } from 'lucide-react';
 import PageHeader from '../components/layout/PageHeader';
 import BottomNav from '../components/layout/BottomNav';
 
@@ -20,8 +20,8 @@ export default function Homepage() {
           {/* Header */}
           <div className="flex justify-between items-center mb-6">
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-[#4af8e3]"></div>
-              <span className="text-[#4af8e3] text-[10px] font-bold tracking-widest uppercase">Live Match</span>
+              <div className="w-2 h-2 rounded-full bg-[#10b981]"></div>
+              <span className="text-[#10b981] text-[10px] font-bold tracking-widest uppercase">Live Match</span>
             </div>
             <div className="bg-[#1f1f1f] px-3 py-1 rounded-md">
               <span className="text-xs font-semibold">T20 League</span>
@@ -123,6 +123,35 @@ export default function Homepage() {
                 <span className="text-[#a3a3a3] font-bold">385 pts</span>
                 <span className="text-[#565555] font-bold text-[8px]">-</span>
               </div>
+            </div>
+          </div>
+        </section>
+
+        {/* AI Insight Teaser */}
+        <section>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Sparkles size={16} className="text-[#c799ff] fill-[#c799ff]/20" />
+              <h3 className="text-sm font-bold tracking-widest uppercase m-0 text-[#ffffff]">AI INSIGHT</h3>
+            </div>
+          </div>
+          <div className="bg-gradient-to-r from-[#2d1b4e]/40 to-[#1a1a1a] border border-[#2d1b4e] rounded-2xl p-5 relative overflow-hidden">
+            <div className="absolute -top-8 -right-4 text-[#c799ff]/5 transform rotate-12">
+              <Sparkles size={120} />
+            </div>
+            
+            <p className="text-[13px] text-[#e5e2e1] leading-relaxed italic relative z-10 m-0 mb-4 font-sans">
+              "RCB's middle order looks vulnerable against spin. Recommending bringing on early slow bowlers in the next match."
+            </p>
+            
+            <div className="flex justify-between items-center relative z-10 border-t border-[#2d1b4e] pt-3 mt-1">
+              <div className="bg-[#1a1a1a] px-2 py-1 rounded border border-[#2d1b4e]">
+                <span className="text-[9px] text-[#a3a3a3] font-bold tracking-widest uppercase">MATCH PREVIEW</span>
+              </div>
+              <button className="text-[#c799ff] text-[10px] font-bold tracking-widest uppercase flex items-center gap-1 hover:text-[#d8b4fe] transition-colors">
+                FULL REPORT
+                <Sparkles size={10} />
+              </button>
             </div>
           </div>
         </section>
