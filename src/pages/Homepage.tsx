@@ -88,7 +88,7 @@ export default function Homepage() {
         <section>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-bold tracking-widest uppercase">WEEKLY MVPS</h3>
-            <button className="text-[#a855f7] text-xs font-bold tracking-widest uppercase">VIEW ALL</button>
+            <button onClick={() => navigate('/rankings')} className="text-[#a855f7] text-xs font-bold tracking-widest uppercase">VIEW ALL</button>
           </div>
           <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             <div className="min-w-[100px] bg-[#161616] border border-[#2d1b4e] rounded-2xl p-4 flex flex-col items-center relative overflow-hidden">
