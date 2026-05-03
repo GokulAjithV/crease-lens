@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import React, { useState } from 'react';
 import { ArrowLeft, HelpCircle, MoreVertical, MapPin, Calendar, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -230,6 +229,3 @@ export default function StartMatch() {
     </div>
   );
 }
-=======
-﻿export default function StartMatch() { return <div>StartMatch Placeholder</div>; }
->>>>>>> d96e1bd4743d01468ea959410d32aed92ffb05c0
