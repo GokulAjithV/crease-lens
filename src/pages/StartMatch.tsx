@@ -1,9 +1,22 @@
 import React, { useState } from 'react';
-import { ArrowLeft, HelpCircle, MoreVertical, MapPin, Calendar, ChevronRight } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, HelpCircle, MoreVertical, MapPin, Calendar, ChevronRight, Repeat, UserPlus } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+
+interface TeamData {
+  id: string;
+  name: string;
+  initials: string;
+  color: string;
+  players: number;
+  matches: number;
+  sub: string;
+}
 
 export default function StartMatch() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { team1, team2 } = (location.state as { team1: TeamData | null; team2: TeamData | null }) || { team1: null, team2: null };
+
   const [matchType, setMatchType] = useState('Limited Overs');
   const [ballType, setBallType] = useState('Leather');
   const [pitchType, setPitchType] = useState('Turf');
@@ -25,7 +38,7 @@ export default function StartMatch() {
       
       {/* Header */}
       <header className="sticky top-0 z-50 flex items-center justify-between px-4 py-4 bg-[#000000]">
-        <button onClick={() => navigate(-1)} className="text-[#a3a3a3] hover:text-[#ffffff] transition-colors">
+        <button onClick={() => navigate('/match/select-team', { state: { preselectedTeam1: team1?.id || null, preselectedTeam2: team2?.id || null } })} className="text-[#a3a3a3] hover:text-[#ffffff] transition-colors">
           <ArrowLeft size={20} />
         </button>
         <h1 className="text-lg font-bold text-[#ffffff] absolute left-1/2 -translate-x-1/2">Match Setup</h1>
@@ -55,15 +68,65 @@ export default function StartMatch() {
       
       <main className="px-4 py-2 space-y-8 pb-32">
         
-        {/* Team Avatar & Squad */}
-        <section className="flex flex-col items-center gap-3">
-          <div className="w-20 h-20 rounded-full bg-[#a855f7] flex items-center justify-center shadow-[0_0_24px_rgba(168,85,247,0.3)]">
-            <span className="text-2xl font-bold text-[#ffffff] font-headline">VK</span>
+        {/* Teams VS Display */}
+        <section className="bg-gradient-to-br from-[#1a1a1a] to-[#111] rounded-2xl p-5">
+          <div className="flex items-center justify-between">
+            {/* Team 1 */}
+            <div className="flex flex-col items-center gap-2 flex-1">
+              <div
+                className="w-16 h-16 rounded-full flex items-center justify-center shadow-[0_0_16px_rgba(168,85,247,0.2)]"
+                style={{ backgroundColor: team1?.color || '#a855f7' }}
+              >
+                <span className="text-xl font-bold text-[#000] font-headline">{team1?.initials || '??'}</span>
+              </div>
+              <span className="text-sm font-bold text-[#ffffff] text-center leading-tight">{team1?.name || 'Team 1'}</span>
+              <span className="text-[10px] text-[#a3a3a3]">{team1 ? `${team1.players} Players` : ''}</span>
+              {team1 && (
+                <button
+                  onClick={() => navigate(`/team/${team1.id}/players`)}
+                  className="flex items-center gap-1 text-[#a855f7] hover:text-[#c799ff] transition-colors mt-1"
+                >
+                  <UserPlus size={10} />
+                  <span className="text-[8px] font-bold tracking-wider uppercase">ADD PLAYERS</span>
+                </button>
+              )}
+            </div>
+
+            {/* VS Badge */}
+            <div className="flex flex-col items-center gap-1 mx-2">
+              <div className="w-10 h-10 rounded-full bg-[#2d1b4e] flex items-center justify-center">
+                <span className="text-xs font-black text-[#c799ff]">VS</span>
+              </div>
+              <button
+                onClick={() => navigate('/match/select-team', { state: { preselectedTeam1: team1?.id || null, preselectedTeam2: team2?.id || null } })}
+                className="flex items-center gap-1 text-[#a855f7] hover:text-[#c799ff] transition-colors mt-1"
+              >
+                <Repeat size={10} />
+                <span className="text-[8px] font-bold tracking-wider uppercase">CHANGE</span>
+              </button>
+            </div>
+
+            {/* Team 2 */}
+            <div className="flex flex-col items-center gap-2 flex-1">
+              <div
+                className="w-16 h-16 rounded-full flex items-center justify-center shadow-[0_0_16px_rgba(168,85,247,0.2)]"
+                style={{ backgroundColor: team2?.color || '#333' }}
+              >
+                <span className="text-xl font-bold text-[#ffffff] font-headline">{team2?.initials || '??'}</span>
+              </div>
+              <span className="text-sm font-bold text-[#ffffff] text-center leading-tight">{team2?.name || 'Team 2'}</span>
+              <span className="text-[10px] text-[#a3a3a3]">{team2 ? `${team2.players} Players` : ''}</span>
+              {team2 && (
+                <button
+                  onClick={() => navigate(`/team/${team2.id}/players`)}
+                  className="flex items-center gap-1 text-[#a855f7] hover:text-[#c799ff] transition-colors mt-1"
+                >
+                  <UserPlus size={10} />
+                  <span className="text-[8px] font-bold tracking-wider uppercase">ADD PLAYERS</span>
+                </button>
+              )}
+            </div>
           </div>
-          <span className="text-base font-bold text-[#ffffff]">Village Kings</span>
-          <button className="border border-[#a855f7] text-[#c799ff] px-5 py-2 rounded-full text-xs font-bold tracking-wider hover:bg-[#a855f7]/10 transition-colors">
-            SELECT SQUAD
-          </button>
         </section>
 
         {/* Match Type */}

@@ -1,26 +1,31 @@
 import React, { useState } from 'react';
-import { X, Search, Plus, ChevronRight } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { X, Search, Plus, ChevronRight, ArrowLeft } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const allTeams = {
   yours: [
-    { id: '1', name: 'Village Kings', initials: 'VK', color: 'bg-[#a855f7]', players: 8, matches: 12, sub: 'Created by you · 8 Players' },
-    { id: '2', name: 'Mumbai XI', initials: 'MX', color: 'bg-[#f59e0b]', players: 11, matches: 24, sub: 'Created by you · 11 Players' },
-    { id: '3', name: 'Street Strikers', initials: 'SS', color: 'bg-[#10b981]', players: 9, matches: 6, sub: 'Created by you · 9 Players' },
+    { id: '1', name: 'Village Kings', initials: 'VK', color: '#a855f7', players: 8, matches: 12, sub: 'Created by you · 8 Players' },
+    { id: '2', name: 'Mumbai XI', initials: 'MX', color: '#f59e0b', players: 11, matches: 24, sub: 'Created by you · 11 Players' },
+    { id: '3', name: 'Street Strikers', initials: 'SS', color: '#10b981', players: 9, matches: 6, sub: 'Created by you · 9 Players' },
   ],
   opponents: [
-    { id: '4', name: 'Royal Challengers', initials: 'RC', color: 'bg-[#ef4444]', players: 14, matches: 18, sub: '14 Players · 18 Matches' },
-    { id: '5', name: 'Chennai Lions', initials: 'CL', color: 'bg-[#3b82f6]', players: 12, matches: 10, sub: '12 Players · 10 Matches' },
-    { id: '6', name: 'Delhi Dashers', initials: 'DD', color: 'bg-[#f97316]', players: 10, matches: 8, sub: '10 Players · 8 Matches' },
+    { id: '4', name: 'Royal Challengers', initials: 'RC', color: '#ef4444', players: 14, matches: 18, sub: '14 Players · 18 Matches' },
+    { id: '5', name: 'Chennai Lions', initials: 'CL', color: '#3b82f6', players: 12, matches: 10, sub: '12 Players · 10 Matches' },
+    { id: '6', name: 'Delhi Dashers', initials: 'DD', color: '#f97316', players: 10, matches: 8, sub: '10 Players · 8 Matches' },
   ],
 };
 
 export default function SelectTeam() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const preselected = location.state as { preselectedTeam1?: string | null; preselectedTeam2?: string | null } | null;
+
   const [search, setSearch] = useState('');
-  const [selectedTeam1, setSelectedTeam1] = useState<string | null>(null);
-  const [selectedTeam2, setSelectedTeam2] = useState<string | null>(null);
-  const [selectingFor, setSelectingFor] = useState<1 | 2>(1); // which slot we're picking for
+  const [selectedTeam1, setSelectedTeam1] = useState<string | null>(preselected?.preselectedTeam1 ?? null);
+  const [selectedTeam2, setSelectedTeam2] = useState<string | null>(preselected?.preselectedTeam2 ?? null);
+  const [selectingFor, setSelectingFor] = useState<1 | 2>(
+    preselected?.preselectedTeam1 && preselected?.preselectedTeam2 ? 1 : preselected?.preselectedTeam1 ? 2 : 1
+  );
 
   const filterTeams = (teams: typeof allTeams.yours) =>
     teams.filter((t) => t.name.toLowerCase().includes(search.toLowerCase()));
@@ -57,12 +62,15 @@ export default function SelectTeam() {
       </div>
 
       {/* Header */}
-      <header className="flex items-start justify-between px-4 pt-3 pb-4">
-        <div>
+      <header className="flex items-center gap-3 px-4 pt-3 pb-4">
+        <button onClick={() => navigate(-1)} className="text-[#a3a3a3] hover:text-[#ffffff] transition-colors">
+          <ArrowLeft size={20} />
+        </button>
+        <div className="flex-1">
           <h1 className="text-xl font-bold text-[#ffffff] mb-1">Select Teams</h1>
           <p className="text-xs text-[#a3a3a3] m-0">Your teams · Opponents</p>
         </div>
-        <button onClick={() => navigate(-1)} className="text-[#a3a3a3] hover:text-[#ffffff] transition-colors mt-1">
+        <button onClick={() => navigate('/')} className="text-[#a3a3a3] hover:text-[#ffffff] transition-colors">
           <X size={22} />
         </button>
       </header>
@@ -81,7 +89,7 @@ export default function SelectTeam() {
           >
             {team1 ? (
               <>
-                <div className={`w-10 h-10 rounded-full ${team1.color} flex items-center justify-center flex-shrink-0`}>
+                <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: team1.color }}>
                   <span className="text-sm font-bold text-[#000]">{team1.initials}</span>
                 </div>
                 <div className="flex flex-col items-start overflow-hidden">
@@ -118,7 +126,7 @@ export default function SelectTeam() {
           >
             {team2 ? (
               <>
-                <div className={`w-10 h-10 rounded-full ${team2.color} flex items-center justify-center flex-shrink-0`}>
+                <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: team2.color }}>
                   <span className="text-sm font-bold text-[#000]">{team2.initials}</span>
                 </div>
                 <div className="flex flex-col items-start overflow-hidden">
@@ -204,7 +212,7 @@ export default function SelectTeam() {
                         : 'bg-[#1a1a1a] border border-transparent hover:bg-[#222]'
                     }`}
                   >
-                    <div className={`w-12 h-12 rounded-full ${team.color} flex items-center justify-center flex-shrink-0`}>
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: team.color }}>
                       <span className="text-lg font-bold text-[#000]">{team.initials}</span>
                     </div>
                     <div className="flex-1 min-w-0">
@@ -243,7 +251,7 @@ export default function SelectTeam() {
                         : 'bg-[#1a1a1a] border border-transparent hover:bg-[#222]'
                     }`}
                   >
-                    <div className={`w-12 h-12 rounded-full ${team.color} flex items-center justify-center flex-shrink-0`}>
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: team.color }}>
                       <span className="text-lg font-bold text-[#ffffff]">{team.initials}</span>
                     </div>
                     <div className="flex-1 min-w-0">
@@ -282,7 +290,7 @@ export default function SelectTeam() {
       {/* Footer Action */}
       <div className="fixed bottom-0 w-full max-w-[390px] bg-gradient-to-t from-[#0f0f0f] via-[#0f0f0f] to-transparent px-4 pt-6 pb-8 z-50">
         <button
-          onClick={() => canProceed && navigate('/match/new')}
+          onClick={() => canProceed && navigate('/match/new', { state: { team1, team2 } })}
           disabled={!canProceed}
           className={`w-full py-4 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${
             canProceed
