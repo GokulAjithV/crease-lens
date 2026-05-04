@@ -6,3 +6,6 @@ coverage/
 *.log
 .env*
 EOF
+rankings.html
+raw-utf8.html
+raw.html
