@@ -68,7 +68,7 @@ export default function Homepage() {
 
         {/* Quick Actions */}
         <section className="flex gap-3">
-          <div onClick={() => navigate('/match/new')} className="flex-1 bg-[#161616] border-l-4 border-[#a855f7] rounded-xl p-4 flex flex-col justify-center cursor-pointer hover:bg-[#1f1f1f] transition-colors h-[90px]">
+          <div onClick={() => navigate('/match/select-team')} className="flex-1 bg-[#161616] border-l-4 border-[#a855f7] rounded-xl p-4 flex flex-col justify-center cursor-pointer hover:bg-[#1f1f1f] transition-colors h-[90px]">
             <div className="w-6 h-6 rounded-full border border-[#a855f7] flex items-center justify-center mb-2">
               <Plus size={14} className="text-[#a855f7]" />
             </div>
