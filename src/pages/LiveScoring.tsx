@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, RotateCcw, MoreVertical } from 'lucide-react';
+import { ArrowLeft, RotateCcw, MoreVertical, X, CheckCircle } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 interface TeamData {
@@ -67,6 +67,26 @@ export default function LiveScoring() {
   const rrr = ballsLeft > 0 ? ((remaining / ballsLeft) * 6).toFixed(2) : '0.00';
 
   const [extraMode, setExtraMode] = useState<string | null>(null);
+  const [showWicketSheet, setShowWicketSheet] = useState(false);
+  const [selectedWicketType, setSelectedWicketType] = useState<string | null>(null);
+
+  const wicketTypes = [
+    { id: 'bowled', label: 'Bowled', icon: '🏏' },
+    { id: 'caught', label: 'Caught', icon: '🤲' },
+    { id: 'lbw', label: 'LBW', icon: '🦵' },
+    { id: 'runout', label: 'Run Out', icon: '🏃' },
+    { id: 'stumped', label: 'Stumped', icon: '🧤' },
+    { id: 'hitwicket', label: 'Hit Wicket', icon: '💥' },
+    { id: 'retired', label: 'Retired Out', icon: '🚪' },
+    { id: 'obstructing', label: 'Obstructing', icon: '🚫' },
+  ];
+
+  const handleConfirmWicket = () => {
+    if (!selectedWicketType) return;
+    addBall(0, 'wicket');
+    setShowWicketSheet(false);
+    setSelectedWicketType(null);
+  };
 
   const addBall = (runs: number, type: BallEntry['type'] = 'normal') => {
     const entry: BallEntry = { id: Date.now(), runs, type };
@@ -309,7 +329,7 @@ export default function LiveScoring() {
         {/* Wicket + Undo Row */}
         <div className="flex gap-2">
           <button
-            onClick={() => addBall(0, 'wicket')}
+            onClick={() => { setShowWicketSheet(true); setSelectedWicketType(null); }}
             className="flex-1 bg-[#ef4444] rounded-xl py-3.5 text-center hover:bg-[#dc2626] active:scale-95 transition-all"
           >
             <span className="text-sm font-black text-[#ffffff]">WICKET</span>
@@ -340,6 +360,95 @@ export default function LiveScoring() {
         </div>
 
       </main>
+
+      {/* Wicket Type Bottom Sheet */}
+      {showWicketSheet && (
+        <>
+          {/* Backdrop */}
+          <div
+            onClick={() => setShowWicketSheet(false)}
+            className="fixed inset-0 bg-[#000]/60 z-50 backdrop-blur-sm"
+          />
+
+          {/* Sheet */}
+          <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] bg-[#1a1a1a] rounded-t-3xl z-50 animate-slideUp">
+            {/* Drag Handle */}
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 bg-[#333] rounded-full"></div>
+            </div>
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 pt-2 pb-4">
+              <h2 className="text-xl font-black text-[#ffffff]">Select Wicket Type</h2>
+              <button onClick={() => setShowWicketSheet(false)} className="text-[#a3a3a3] hover:text-[#ffffff] transition-colors">
+                <X size={22} />
+              </button>
+            </div>
+
+            {/* Dismissed Batsman */}
+            <div className="px-5 pb-4">
+              <span className="text-[9px] font-bold text-[#565555] tracking-widest uppercase block mb-2">DISMISSED BATSMAN</span>
+              <div className="bg-[#111] rounded-xl p-3 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-[#242424] flex items-center justify-center">
+                    <span className="text-sm font-bold text-[#a3a3a3]">{striker.name.split(' ').map(w => w[0]).join('')}</span>
+                  </div>
+                  <div>
+                    <span className="text-sm font-bold text-[#ffffff] block">{striker.name}</span>
+                    <span className="text-[10px] text-[#a3a3a3]">Batsman · {striker.runs}({striker.balls})</span>
+                  </div>
+                </div>
+                <span className="bg-[#ef4444]/20 text-[#ef4444] text-[9px] font-bold px-2.5 py-1 rounded-full">OUT</span>
+              </div>
+            </div>
+
+            {/* Wicket Type Grid */}
+            <div className="px-5 pb-5 grid grid-cols-2 gap-2">
+              {wicketTypes.map((wt) => (
+                <button
+                  key={wt.id}
+                  onClick={() => setSelectedWicketType(wt.id)}
+                  className={`rounded-xl p-4 flex flex-col gap-2 text-left transition-all ${
+                    selectedWicketType === wt.id
+                      ? 'bg-[#ef4444]/15 border-2 border-[#ef4444]'
+                      : 'bg-[#111] border-2 border-transparent hover:bg-[#1f1f1f]'
+                  }`}
+                >
+                  <span className="text-xl">{wt.icon}</span>
+                  <span className="text-xs font-bold text-[#ffffff]">{wt.label}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Confirm Button */}
+            <div className="px-5 pb-8">
+              <button
+                onClick={handleConfirmWicket}
+                disabled={!selectedWicketType}
+                className={`w-full py-4 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${
+                  selectedWicketType
+                    ? 'bg-[#ef4444] text-[#ffffff] shadow-[0_4px_20px_rgba(239,68,68,0.35)] hover:bg-[#dc2626] active:scale-[0.98]'
+                    : 'bg-[#333] text-[#565555] cursor-not-allowed'
+                }`}
+              >
+                CONFIRM WICKET
+                <CheckCircle size={16} />
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Animations */}
+      <style>{`
+        @keyframes slideUp {
+          from { transform: translate(-50%, 100%); }
+          to { transform: translate(-50%, 0); }
+        }
+        .animate-slideUp {
+          animation: slideUp 0.3s ease-out;
+        }
+      `}</style>
     </div>
   );
 }
