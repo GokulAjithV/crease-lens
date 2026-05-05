@@ -12,6 +12,7 @@ import AddFromContacts from './pages/AddFromContacts'
 import Toss from './pages/Toss'
 import PlayingXI from './pages/PlayingXI'
 import LiveScoring from './pages/LiveScoring'
+import LiveScorecard from './pages/LiveScorecard'
 import MatchSummary from './pages/MatchSummary'
 import PlayerProfile from './pages/PlayerProfile'
 
@@ -29,6 +30,7 @@ export default function App() {
         <Route path="/match/:matchId/toss" element={<Toss />} />
         <Route path="/match/:matchId/playing-xi/:teamId" element={<PlayingXI />} />
         <Route path="/match/:matchId/scoring" element={<LiveScoring />} />
+        <Route path="/match/:matchId/scorecard" element={<LiveScorecard />} />
         <Route path="/match/:matchId/summary" element={<MatchSummary />} />
 
         {/* Team Management Flow */}
