@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, RotateCcw, MoreVertical, X, CheckCircle } from 'lucide-react';
+import { ArrowLeft, RotateCcw, MoreVertical, X, CheckCircle, ChevronRight } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 interface TeamData {
@@ -86,6 +86,21 @@ export default function LiveScoring() {
     addBall(0, 'wicket');
     setShowWicketSheet(false);
     setSelectedWicketType(null);
+  };
+
+  const [showBowlerSheet, setShowBowlerSheet] = useState(false);
+
+  const allBowlers = [
+    { id: '1', name: 'N. Khan', initials: 'NK', color: '#3b82f6', style: 'RFM', oversUsed: 2.0, maxOvers: 4.0, wickets: 1, runs: 18, econ: 9.0, status: 'available' as const },
+    { id: '2', name: 'M. Suresh', initials: 'MS', color: '#ef4444', style: 'OB', oversUsed: 1.0, maxOvers: 4.0, wickets: 0, runs: 12, econ: 12.0, status: 'available' as const },
+    { id: '3', name: 'R. Kumar', initials: 'RK', color: '#a855f7', style: 'SLA', oversUsed: 0.0, maxOvers: 4.0, wickets: 0, runs: 0, econ: 0, status: 'yet_to_bowl' as const },
+    { id: '4', name: 'Zaheer A.', initials: 'ZA', color: '#565555', style: 'RFM', oversUsed: 3.0, maxOvers: 4.0, wickets: 2, runs: 28, econ: 9.3, status: 'bowled_last' as const },
+    { id: '5', name: 'H. Pandya', initials: 'HP', color: '#565555', style: 'RMF', oversUsed: 4.0, maxOvers: 4.0, wickets: 0, runs: 42, econ: 10.5, status: 'quota_complete' as const },
+  ];
+
+  const handleSelectBowler = (b: typeof allBowlers[0]) => {
+    setShowBowlerSheet(false);
+    // In a real app, this would update the active bowler
   };
 
   const addBall = (runs: number, type: BallEntry['type'] = 'normal') => {
@@ -345,10 +360,16 @@ export default function LiveScoring() {
 
         {/* Quick Actions */}
         <div className="flex gap-2">
-          <button className="flex-1 bg-[#1a1a1a] rounded-xl py-2.5 text-[10px] font-bold text-[#a3a3a3] text-center hover:bg-[#222] transition-colors">
+          <button
+            onClick={() => navigate('/match/1/scorecard', { state: { team1, team2 } })}
+            className="flex-1 bg-[#1a1a1a] rounded-xl py-2.5 text-[10px] font-bold text-[#a3a3a3] text-center hover:bg-[#222] transition-colors"
+          >
             SCORECARD
           </button>
-          <button className="flex-1 bg-[#1a1a1a] rounded-xl py-2.5 text-[10px] font-bold text-[#a3a3a3] text-center hover:bg-[#222] transition-colors">
+          <button
+            onClick={() => setShowBowlerSheet(true)}
+            className="flex-1 bg-[#1a1a1a] rounded-xl py-2.5 text-[10px] font-bold text-[#a3a3a3] text-center hover:bg-[#222] transition-colors"
+          >
             CHANGE BOWLER
           </button>
           <button
@@ -434,6 +455,105 @@ export default function LiveScoring() {
                 CONFIRM WICKET
                 <CheckCircle size={16} />
               </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Select Bowler Bottom Sheet */}
+      {showBowlerSheet && (
+        <>
+          <div
+            onClick={() => setShowBowlerSheet(false)}
+            className="fixed inset-0 bg-[#000]/60 z-50 backdrop-blur-sm"
+          />
+          <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[390px] bg-[#1a1a1a] rounded-t-3xl z-50 animate-slideUp max-h-[85vh] overflow-y-auto">
+            {/* Drag Handle */}
+            <div className="flex justify-center pt-3 pb-1 sticky top-0 bg-[#1a1a1a] z-10">
+              <div className="w-10 h-1 bg-[#333] rounded-full"></div>
+            </div>
+
+            {/* Header */}
+            <div className="text-center px-5 pt-2 pb-4 sticky top-5 bg-[#1a1a1a] z-10">
+              <h2 className="text-xl font-black text-[#ffffff]">Select Bowler</h2>
+              <p className="text-xs text-[#a3a3a3] mt-1">Over {overs + 1} · {bowlingTeam?.name || 'Village Kings'} bowling</p>
+            </div>
+
+            {/* Current Bowler */}
+            <div className="px-5 pb-3">
+              <div className="bg-[#2d1b4e] rounded-xl px-4 py-3 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-[#a855f7] flex items-center justify-center">
+                    <span className="text-xs font-bold text-[#000]">{bowler.name.split(' ').map(w => w[0]).join('')}</span>
+                  </div>
+                  <span className="text-sm font-bold text-[#ffffff]">{bowler.name}</span>
+                </div>
+                <span className="text-sm font-bold text-[#c799ff] tracking-wider">{bowler.overs}-{bowler.maidens}-{bowler.runs}-{bowler.wickets}</span>
+              </div>
+            </div>
+
+            {/* Bowler List */}
+            <div className="px-5 pb-8 space-y-2">
+              {allBowlers.map((b) => {
+                const isDisabled = b.status === 'bowled_last' || b.status === 'quota_complete';
+                const progressPct = (b.oversUsed / b.maxOvers) * 100;
+                const progressColor = b.status === 'quota_complete' ? 'bg-[#ef4444]' : b.status === 'yet_to_bowl' ? 'bg-[#333]' : 'bg-[#a855f7]';
+                return (
+                  <div key={b.id} className={`bg-[#111] rounded-xl p-4 ${isDisabled ? 'opacity-50' : ''}`}>
+                    <div className="flex items-center gap-3">
+                      {/* Avatar */}
+                      <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: b.color }}>
+                        <span className="text-xs font-bold text-[#fff]">{b.initials}</span>
+                      </div>
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm font-bold text-[#ffffff]">{b.name}</span>
+                          <span className="text-[10px] font-bold text-[#a3a3a3]">{b.style}</span>
+                        </div>
+                        {/* Progress Bar */}
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 h-1.5 bg-[#242424] rounded-full overflow-hidden">
+                            <div className={`h-full rounded-full ${progressColor}`} style={{ width: `${progressPct}%` }}></div>
+                          </div>
+                          <span className="text-[9px] text-[#a3a3a3] font-bold w-10 text-right">{b.oversUsed}/{b.maxOvers}</span>
+                          {/* Select Button */}
+                          {!isDisabled ? (
+                            <button
+                              onClick={() => handleSelectBowler(b)}
+                              className="bg-[#a855f7] text-[#ffffff] text-[9px] font-bold px-3 py-1.5 rounded-full flex items-center gap-0.5 hover:bg-[#c799ff] active:scale-95 transition-all"
+                            >
+                              SELECT <ChevronRight size={10} />
+                            </button>
+                          ) : (
+                            <button disabled className="bg-[#333] text-[#565555] text-[9px] font-bold px-3 py-1.5 rounded-full cursor-not-allowed">
+                              SELECT
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    {/* Stats Row */}
+                    <div className="flex items-center justify-between mt-2 pl-[52px]">
+                      <span className="text-[10px] font-bold text-[#a3a3a3]">
+                        {b.status === 'yet_to_bowl' ? '' : `${b.wickets}-${b.runs}`}
+                        {b.status !== 'yet_to_bowl' && b.econ > 0 ? `  Econ ${b.econ.toFixed(1)}` : ''}
+                      </span>
+                      <span className={`text-[10px] italic ${
+                        b.status === 'yet_to_bowl' ? 'text-[#22c55e]'
+                          : b.status === 'bowled_last' ? 'text-[#f59e0b]'
+                          : b.status === 'quota_complete' ? 'text-[#ef4444]'
+                          : 'text-[#a3a3a3]'
+                      }`}>
+                        {b.status === 'yet_to_bowl' ? 'Yet to bowl'
+                          : b.status === 'bowled_last' ? 'Bowled last over'
+                          : b.status === 'quota_complete' ? 'Quota complete'
+                          : ''}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </>
