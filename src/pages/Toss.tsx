@@ -42,7 +42,7 @@ export default function Toss() {
   };
 
   const handleProceed = () => {
-    navigate(`/match/1/scoring`, { state: { team1, team2, tossWinner, decision } });
+    navigate(`/match/1/playing-xi/${team1?.id || '1'}`, { state: { team1, team2, tossWinner, decision, currentTeamIndex: 0 } });
   };
 
   return (
@@ -228,7 +228,8 @@ export default function Toss() {
             onClick={handleProceed}
             className="w-full bg-[#a855f7] text-[#ffffff] py-4 rounded-2xl font-bold text-sm shadow-[0_4px_20px_rgba(168,85,247,0.35)] hover:bg-[#c799ff] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
           >
-            Start Match 🏏
+            Select Playing XI
+            <span className="text-base">→</span>
           </button>
         </div>
       )}
