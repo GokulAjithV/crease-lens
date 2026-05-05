@@ -282,7 +282,7 @@ export default function StartMatch() {
           Schedule Match
         </button>
         <button 
-          onClick={() => navigate('/match/select-team')}
+          onClick={() => navigate('/match/1/toss', { state: { team1, team2 } })}
           className="flex-1 bg-[#a855f7] text-[#ffffff] py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-[#c799ff] transition-colors shadow-[0_4px_16px_rgba(168,85,247,0.3)]"
         >
           Next (Toss)
