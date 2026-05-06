@@ -1,16 +1,100 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Play, Plus, RotateCcw, Share2, Trophy, Sparkles } from 'lucide-react';
-import PageHeader from '../components/layout/PageHeader';
+import { Play, Plus, RotateCcw, Share2, Trophy, Sparkles, Menu, X, User, BarChart3, Users, Zap, ClipboardList, Radio } from 'lucide-react';
 import BottomNav from '../components/layout/BottomNav';
+
+const menuItems = [
+  { label: 'Player Profile', desc: 'View stats & match history', icon: User, path: '/player/1', color: '#a855f7' },
+  { label: 'Rankings', desc: 'Weekly MVPs & leaderboard', icon: BarChart3, path: '/rankings', color: '#22c55e' },
+  { label: 'Start New Match', desc: 'Set up teams & begin scoring', icon: Zap, path: '/match/select-team', color: '#fbbf24' },
+  { label: 'Manage Teams', desc: 'Create & edit team rosters', icon: Users, path: '/team/add', color: '#3b82f6' },
+  { label: 'Live Scorecard', desc: 'View detailed match scorecard', icon: Radio, path: '/match/1/scorecard', color: '#ef4444' },
+  { label: 'Match Summary', desc: 'Post-match report & analysis', icon: ClipboardList, path: '/match/1/summary', color: '#f59e0b' },
+];
 
 export default function Homepage() {
   const navigate = useNavigate();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   return (
     <div className="mx-auto max-w-[390px] min-h-screen bg-[#0e0e0e] text-[#ffffff] font-sans relative pb-28 overflow-x-hidden shadow-2xl">
-      <PageHeader title="CREASE" />
-      
+
+      {/* Header */}
+      <header className="sticky top-0 z-50 flex items-center justify-between px-4 py-4 bg-[#0e0e0e]">
+        <button
+          onClick={() => setMenuOpen(true)}
+          className="w-10 h-10 rounded-xl bg-[#1a1a1a] border border-[#2a2a2a] flex items-center justify-center hover:bg-[#222] active:scale-95 transition-all"
+        >
+          <Menu size={18} className="text-[#c799ff]" />
+        </button>
+        <h1 className="text-2xl font-black text-[#c799ff] tracking-wider uppercase">CREASE</h1>
+        <div className="w-10 h-10 rounded-full border-2 border-[#a855f7] overflow-hidden flex items-center justify-center bg-[#1a1a1a]">
+          <img src="https://ui-avatars.com/api/?name=User&background=1a1a1a&color=fff" alt="User" className="w-full h-full object-cover" />
+        </div>
+      </header>
+
+      {/* Side Drawer */}
+      {menuOpen && (
+        <>
+          <div onClick={() => setMenuOpen(false)} className="fixed inset-0 bg-[#000]/70 z-[60] backdrop-blur-sm" />
+          <div className="fixed top-0 left-0 bottom-0 z-[70] w-[280px] bg-[#111] shadow-[4px_0_30px_rgba(0,0,0,0.6)] animate-drawerSlide flex flex-col">
+            {/* Drawer Header */}
+            <div className="flex items-center justify-between px-5 pt-6 pb-5 border-b border-[#1a1a1a]">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#a855f7] to-[#7c3aed] flex items-center justify-center">
+                  <span className="text-sm font-bold text-[#fff]">U</span>
+                </div>
+                <div>
+                  <span className="text-sm font-black text-[#ffffff] block">Crease</span>
+                  <span className="text-[9px] text-[#565555]">Stadium Noir</span>
+                </div>
+              </div>
+              <button
+                onClick={() => setMenuOpen(false)}
+                className="w-7 h-7 rounded-full bg-[#1a1a1a] flex items-center justify-center hover:bg-[#242424] transition-colors"
+              >
+                <X size={14} className="text-[#a3a3a3]" />
+              </button>
+            </div>
+
+            {/* Drawer Items */}
+            <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+              {menuItems.map((item) => (
+                <button
+                  key={item.label}
+                  onClick={() => { setMenuOpen(false); navigate(item.path); }}
+                  className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-[#1a1a1a] active:scale-[0.98] transition-all text-left"
+                >
+                  <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: item.color + '15' }}>
+                    <item.icon size={16} style={{ color: item.color }} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[13px] font-bold text-[#ffffff] block">{item.label}</span>
+                    <span className="text-[9px] text-[#565555]">{item.desc}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            {/* Drawer Footer */}
+            <div className="px-5 py-4 border-t border-[#1a1a1a]">
+              <span className="text-[8px] text-[#333] tracking-widest uppercase">Crease Lens v1.0</span>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Drawer Animation */}
+      <style>{`
+        @keyframes drawerSlide {
+          from { transform: translateX(-100%); }
+          to { transform: translateX(0); }
+        }
+        .animate-drawerSlide {
+          animation: drawerSlide 0.25s ease-out;
+        }
+      `}</style>
+
       <main className="px-4 py-2 space-y-6">
         
         {/* Live Match Card */}
