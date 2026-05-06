@@ -8,7 +8,7 @@ export default function PageHeader({ title, showActions = true }: { title: strin
         <div className="w-10 h-10 rounded-full border-2 border-[#a855f7] overflow-hidden flex items-center justify-center bg-[#1a1a1a]">
           <img src="https://ui-avatars.com/api/?name=User&background=1a1a1a&color=fff" alt="User" className="w-full h-full object-cover" />
         </div>
-        <h1 className="text-2xl font-black text-[#c799ff] italic tracking-wider uppercase">{title}</h1>
+        <h1 className="text-2xl font-black text-[#c799ff] tracking-wider uppercase">{title}</h1>
       </div>
       {showActions && (
         <div className="flex items-center gap-4">
