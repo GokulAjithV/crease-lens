@@ -42,7 +42,7 @@ export default function MatchSummary() {
 
       {/* Header */}
       <header className="sticky top-0 z-50 flex items-center justify-between px-4 py-4 bg-[#000000]">
-        <button onClick={() => navigate('/')} className="text-[#a3a3a3] hover:text-[#ffffff] transition-colors">
+        <button onClick={() => navigate('/home')} className="text-[#a3a3a3] hover:text-[#ffffff] transition-colors">
           <ArrowLeft size={20} />
         </button>
         <h1 className="text-sm font-bold text-[#c799ff] tracking-wider uppercase">Match Summary</h1>

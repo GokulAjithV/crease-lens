@@ -15,13 +15,20 @@ import LiveScoring from './pages/LiveScoring'
 import LiveScorecard from './pages/LiveScorecard'
 import MatchSummary from './pages/MatchSummary'
 import PlayerProfile from './pages/PlayerProfile'
+import Login from './pages/Login'
+import Register from './pages/Register'
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Auth */}
+        <Route path="/" element={<Login />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+
         {/* Core */}
-        <Route path="/" element={<Homepage />} />
+        <Route path="/home" element={<Homepage />} />
         <Route path="/rankings" element={<Rankings />} />
 
         {/* Match Setup Flow */}
@@ -43,7 +50,7 @@ export default function App() {
         <Route path="/player/:playerId" element={<PlayerProfile />} />
 
         {/* Fallback */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
   )
