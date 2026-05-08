@@ -70,7 +70,7 @@ export default function SelectTeam() {
           <h1 className="text-xl font-bold text-[#ffffff] mb-1">Select Teams</h1>
           <p className="text-xs text-[#a3a3a3] m-0">Your teams · Opponents</p>
         </div>
-        <button onClick={() => navigate('/')} className="text-[#a3a3a3] hover:text-[#ffffff] transition-colors">
+        <button onClick={() => navigate('/home')} className="text-[#a3a3a3] hover:text-[#ffffff] transition-colors">
           <X size={22} />
         </button>
       </header>
