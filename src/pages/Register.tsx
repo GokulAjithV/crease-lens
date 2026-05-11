@@ -18,6 +18,9 @@ export default function Register() {
   const [batHand, setBatHand] = useState<BatHand>('right');
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
   const roles: { id: CricketRole; label: string }[] = [
     { id: 'batsman', label: 'Batsman' },
     { id: 'bowler', label: 'Bowler' },
@@ -25,10 +28,46 @@ export default function Register() {
     { id: 'keeper', label: 'Wicket Keeper' },
   ];
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: integrate with backend auth
-    navigate('/home');
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
+    setError('');
+    setLoading(true);
+
+    try {
+      const payload = {
+        full_name: fullName,
+        phone: phone || undefined,
+        email: email || undefined,
+        password: password,
+      };
+
+      const response = await fetch('http://localhost:8000/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || 'Registration failed');
+      }
+
+      // Save token and user data
+      localStorage.setItem('token', data.access_token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+
+      navigate('/home');
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -44,6 +83,11 @@ export default function Register() {
       </header>
 
       <form onSubmit={handleRegister} className="px-6 pb-10">
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/50 text-red-500 text-xs px-4 py-3 rounded-xl mb-4 mt-2">
+            {error}
+          </div>
+        )}
 
         {/* Avatar Upload */}
         <section className="flex flex-col items-center py-6">
@@ -198,17 +242,16 @@ export default function Register() {
           </p>
         </div>
 
-        {/* Create Account Button */}
         <button
           type="submit"
-          disabled={!agreedToTerms || !fullName || !phone || !password}
+          disabled={loading || !agreedToTerms || !fullName || !phone || !password}
           className={`w-full py-4 rounded-2xl font-bold text-sm transition-all ${
-            agreedToTerms && fullName && phone && password
+            agreedToTerms && fullName && phone && password && !loading
               ? 'bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-[#ffffff] shadow-[0_4px_25px_rgba(124,58,237,0.4)] hover:shadow-[0_4px_30px_rgba(124,58,237,0.6)] active:scale-[0.98]'
               : 'bg-[#2a2a2a] text-[#565555] cursor-not-allowed'
           }`}
         >
-          Create Account
+          {loading ? 'Creating Account...' : 'Create Account'}
         </button>
 
         {/* Footer */}

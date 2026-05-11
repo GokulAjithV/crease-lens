@@ -8,10 +8,37 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: integrate with backend auth
-    navigate('/home');
+    setError('');
+    setLoading(true);
+
+    try {
+      const response = await fetch('http://localhost:8000/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email_or_phone: phone, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || 'Login failed');
+      }
+
+      // Save token and user data
+      localStorage.setItem('token', data.access_token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+
+      navigate('/home');
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -43,6 +70,11 @@ export default function Login() {
 
       {/* Form */}
       <form onSubmit={handleLogin} className="px-6 flex-1 flex flex-col">
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/50 text-red-500 text-xs px-4 py-3 rounded-xl mb-4">
+            {error}
+          </div>
+        )}
         <div className="space-y-4 mb-3">
           {/* Phone */}
           <div className="bg-[#1a1a1a] rounded-xl flex items-center px-4 py-3.5 gap-3 border border-transparent focus-within:border-[#a855f7]/40 transition-colors">
@@ -87,9 +119,14 @@ export default function Login() {
         {/* Sign In Button */}
         <button
           type="submit"
-          className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-[#ffffff] font-bold text-sm shadow-[0_4px_25px_rgba(124,58,237,0.4)] hover:shadow-[0_4px_30px_rgba(124,58,237,0.6)] active:scale-[0.98] transition-all"
+          disabled={loading || !phone || !password}
+          className={`w-full py-4 rounded-2xl font-bold text-sm transition-all ${
+            loading || !phone || !password
+              ? 'bg-[#2a2a2a] text-[#565555] cursor-not-allowed'
+              : 'bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-[#ffffff] shadow-[0_4px_25px_rgba(124,58,237,0.4)] hover:shadow-[0_4px_30px_rgba(124,58,237,0.6)] active:scale-[0.98]'
+          }`}
         >
-          Sign In
+          {loading ? 'Signing In...' : 'Sign In'}
         </button>
 
         {/* Divider */}
