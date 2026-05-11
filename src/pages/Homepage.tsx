@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Play, Plus, RotateCcw, Share2, Trophy, Sparkles, Menu, X, User, BarChart3, Users, Zap, ClipboardList, Radio } from 'lucide-react';
+import { Play, Plus, RotateCcw, Share2, Trophy, Sparkles, Menu, X, User, BarChart3, Users, Zap, ClipboardList, Radio, LogOut } from 'lucide-react';
 import BottomNav from '../components/layout/BottomNav';
 
 const menuItems = [
@@ -16,6 +16,29 @@ export default function Homepage() {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
 
+  // Load user from local storage
+  const userStr = localStorage.getItem('user');
+  const user = userStr ? JSON.parse(userStr) : null;
+  
+  let displayName = 'User';
+  let initial = 'U';
+
+  if (user?.full_name || user?.name) {
+    displayName = user.full_name || user.name;
+    initial = displayName.charAt(0).toUpperCase();
+  } else if (user?.phone) {
+    displayName = user.phone;
+    // Don't use +, get the first digit of the local number roughly (after +91)
+    const cleanPhone = user.phone.replace('+91', '').trim();
+    initial = cleanPhone ? cleanPhone.charAt(0) : 'U';
+  }
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    navigate('/login');
+  };
+
   return (
     <div className="mx-auto max-w-[390px] min-h-screen bg-[#0e0e0e] text-[#ffffff] font-sans relative pb-28 overflow-x-hidden shadow-2xl">
 
@@ -29,7 +52,7 @@ export default function Homepage() {
         </button>
         <h1 className="text-2xl font-black text-[#c799ff] tracking-wider uppercase">CREASE</h1>
         <div className="w-10 h-10 rounded-full border-2 border-[#a855f7] overflow-hidden flex items-center justify-center bg-[#1a1a1a]">
-          <img src="https://ui-avatars.com/api/?name=User&background=1a1a1a&color=fff" alt="User" className="w-full h-full object-cover" />
+          <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(initial)}&background=1a1a1a&color=fff`} alt={displayName} className="w-full h-full object-cover" />
         </div>
       </header>
 
@@ -42,11 +65,11 @@ export default function Homepage() {
             <div className="flex items-center justify-between px-5 pt-6 pb-5 border-b border-[#1a1a1a]">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#a855f7] to-[#7c3aed] flex items-center justify-center">
-                  <span className="text-sm font-bold text-[#fff]">U</span>
+                  <span className="text-sm font-bold text-[#fff]">{initial}</span>
                 </div>
                 <div>
-                  <span className="text-sm font-black text-[#ffffff] block">Crease</span>
-                  <span className="text-[9px] text-[#565555]">Stadium Noir</span>
+                  <span className="text-sm font-black text-[#ffffff] block">{displayName}</span>
+                  <span className="text-[9px] text-[#565555]">Stadium Noir Player</span>
                 </div>
               </div>
               <button
@@ -77,8 +100,12 @@ export default function Homepage() {
             </div>
 
             {/* Drawer Footer */}
-            <div className="px-5 py-4 border-t border-[#1a1a1a]">
+            <div className="px-5 py-4 border-t border-[#1a1a1a] flex justify-between items-center">
               <span className="text-[8px] text-[#333] tracking-widest uppercase">Crease Lens v1.0</span>
+              <button onClick={handleLogout} className="flex items-center gap-1.5 text-xs text-[#ef4444] font-bold hover:text-[#f87171] transition-colors">
+                <LogOut size={12} />
+                LOGOUT
+              </button>
             </div>
           </div>
         </>
