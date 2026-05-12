@@ -23,8 +23,10 @@ export default function Homepage() {
   let displayName = 'User';
   let initial = 'U';
 
-  if (user?.full_name || user?.name) {
-    displayName = user.full_name || user.name;
+  if (user?.first_name || user?.last_name || user?.name) {
+    const fn = user.first_name || '';
+    const ln = user.last_name || '';
+    displayName = fn || ln ? `${fn} ${ln}`.trim() : user.name;
     initial = displayName.charAt(0).toUpperCase();
   } else if (user?.phone) {
     displayName = user.phone;
