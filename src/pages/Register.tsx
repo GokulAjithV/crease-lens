@@ -7,7 +7,8 @@ type BatHand = 'right' | 'left';
 
 export default function Register() {
   const navigate = useNavigate();
-  const [fullName, setFullName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -40,7 +41,8 @@ export default function Register() {
 
     try {
       const payload = {
-        full_name: fullName,
+        first_name: firstName,
+        last_name: lastName,
         phone: phone || undefined,
         email: email || undefined,
         password: password,
@@ -108,16 +110,27 @@ export default function Register() {
 
         {/* Input Fields */}
         <div className="space-y-3 mb-6">
-          {/* Full Name */}
-          <div className="bg-[#1a1a1a] rounded-xl flex items-center px-4 py-3.5 gap-3 border border-transparent focus-within:border-[#a855f7]/40 transition-colors">
-            <User size={16} className="text-[#565555] flex-shrink-0" />
-            <input
-              type="text"
-              placeholder="Full Name"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              className="flex-1 bg-transparent text-sm text-[#ffffff] placeholder-[#565555] outline-none"
-            />
+          {/* Name Fields */}
+          <div className="flex gap-3">
+            <div className="bg-[#1a1a1a] flex-1 rounded-xl flex items-center px-4 py-3.5 gap-3 border border-transparent focus-within:border-[#a855f7]/40 transition-colors">
+              <User size={16} className="text-[#565555] flex-shrink-0" />
+              <input
+                type="text"
+                placeholder="First Name"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                className="flex-1 w-full bg-transparent text-sm text-[#ffffff] placeholder-[#565555] outline-none"
+              />
+            </div>
+            <div className="bg-[#1a1a1a] flex-1 rounded-xl flex items-center px-4 py-3.5 border border-transparent focus-within:border-[#a855f7]/40 transition-colors">
+              <input
+                type="text"
+                placeholder="Last Name"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                className="flex-1 w-full bg-transparent text-sm text-[#ffffff] placeholder-[#565555] outline-none"
+              />
+            </div>
           </div>
 
           {/* Phone */}
@@ -245,9 +258,9 @@ export default function Register() {
 
         <button
           type="submit"
-          disabled={loading || !agreedToTerms || !fullName || !phone || !password}
+          disabled={loading || !agreedToTerms || !firstName || !lastName || !phone || !password}
           className={`w-full py-4 rounded-2xl font-bold text-sm transition-all ${
-            agreedToTerms && fullName && phone && password && !loading
+            agreedToTerms && firstName && lastName && phone && password && !loading
               ? 'bg-gradient-to-r from-[#7c3aed] to-[#a855f7] text-[#ffffff] shadow-[0_4px_25px_rgba(124,58,237,0.4)] hover:shadow-[0_4px_30px_rgba(124,58,237,0.6)] active:scale-[0.98]'
               : 'bg-[#2a2a2a] text-[#565555] cursor-not-allowed'
           }`}
