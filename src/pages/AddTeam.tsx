@@ -11,11 +11,52 @@ export default function AddTeam() {
   const navigate = useNavigate();
   const [teamName, setTeamName] = useState('');
   const [city, setCity] = useState('');
-  const [captainPhone, setCaptainPhone] = useState('');
-  const [captainName, setCaptainName] = useState('');
   const [selectedColor, setSelectedColor] = useState('#a855f7');
-  const [captainCanAdd, setCaptainCanAdd] = useState(true);
+  const [captainCanEdit, setCaptainCanEdit] = useState(true);
   const [hasLogo, setHasLogo] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const canCreate = teamName.trim().length >= 2;
+
+  const handleCreateTeam = async () => {
+    if (!canCreate || loading) return;
+    setLoading(true);
+    setError('');
+    
+    try {
+      const token = localStorage.getItem('token');
+      let apiUrl = import.meta.env.VITE_API_URL;
+      if (!apiUrl || !apiUrl.includes('://')) {
+        apiUrl = 'http://localhost:8000';
+      }
+      
+      const response = await fetch(`${apiUrl}/api/teams`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: teamName,
+          city: city || undefined,
+          avatar_color: selectedColor,
+          captain_can_edit: captainCanEdit
+        })
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => null);
+        throw new Error(errData?.detail || 'Failed to create team');
+      }
+
+      navigate(-1);
+    } catch (err: any) {
+      setError(err.message || 'Something went wrong');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const maxNameLength = 30;
   const initials = teamName
@@ -24,8 +65,6 @@ export default function AddTeam() {
     .join('')
     .toUpperCase()
     .slice(0, 2);
-
-  const canCreate = teamName.trim().length >= 2;
 
   return (
     <div className="mx-auto max-w-[390px] min-h-screen bg-[#000000] text-[#ffffff] font-sans relative overflow-x-hidden shadow-2xl">
@@ -120,58 +159,26 @@ export default function AddTeam() {
             </div>
           </div>
 
-          {/* Captain's Phone */}
-          <div>
-            <label className="text-[10px] font-bold text-[#565555] tracking-widest uppercase block mb-2">CAPTAIN'S PHONE NUMBER</label>
-            <div className="flex gap-2">
-              <div className="bg-[#1a1a1a] rounded-xl px-3 py-3 flex items-center gap-1 border border-transparent">
-                <span className="text-sm font-bold text-[#ffffff]">+91</span>
-              </div>
-              <div className={`flex-1 flex items-center gap-2 bg-[#1a1a1a] rounded-xl px-4 py-3 border transition-colors ${
-                captainPhone.length > 0 ? 'border-[#ffffff]/20' : 'border-transparent'
-              } focus-within:border-[#a855f7]`}>
-                <Smartphone size={16} className="text-[#565555] flex-shrink-0" />
-                <input
-                  type="tel"
-                  value={captainPhone}
-                  onChange={(e) => setCaptainPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                  placeholder="e.g. 9876543210"
-                  className="w-full bg-transparent text-sm text-[#ffffff] outline-none placeholder:text-[#333]"
-                />
-              </div>
+          {/* Error Message */}
+          {error && (
+            <div className="bg-[#ef4444]/10 border border-[#ef4444]/20 rounded-xl p-3">
+              <p className="text-[#ef4444] text-xs font-bold">{error}</p>
             </div>
-          </div>
-
-          {/* Captain's Name */}
-          <div>
-            <label className="text-[10px] font-bold text-[#565555] tracking-widest uppercase block mb-2">CAPTAIN'S NAME</label>
-            <div className={`flex items-center gap-2 bg-[#1a1a1a] rounded-xl px-4 py-3 border transition-colors ${
-              captainName.length > 0 ? 'border-[#ffffff]/20' : 'border-transparent'
-            } focus-within:border-[#a855f7]`}>
-              <User size={16} className="text-[#565555] flex-shrink-0" />
-              <input
-                type="text"
-                value={captainName}
-                onChange={(e) => setCaptainName(e.target.value)}
-                placeholder="e.g. Gokul"
-                className="w-full bg-transparent text-sm text-[#ffffff] outline-none placeholder:text-[#333]"
-              />
-            </div>
-          </div>
+          )}
 
           {/* Checkbox */}
           <div className="flex items-center gap-3">
             <button
-              onClick={() => setCaptainCanAdd(!captainCanAdd)}
+              onClick={() => setCaptainCanEdit(!captainCanEdit)}
               className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 transition-all ${
-                captainCanAdd
+                captainCanEdit
                   ? 'bg-[#a855f7]'
                   : 'bg-transparent border-2 border-[#565555]'
               }`}
             >
-              {captainCanAdd && <span className="text-[#ffffff] text-xs font-bold">✓</span>}
+              {captainCanEdit && <span className="text-[#ffffff] text-xs font-bold">✓</span>}
             </button>
-            <span className="text-sm text-[#a3a3a3]">Let the captain add team players</span>
+            <span className="text-sm text-[#a3a3a3]">Let the captain edit team details</span>
           </div>
 
         </section>
@@ -181,16 +188,16 @@ export default function AddTeam() {
       {/* Footer */}
       <div className="fixed bottom-0 w-full max-w-[390px] bg-gradient-to-t from-[#000000] via-[#000000] to-transparent px-4 pt-6 pb-8 z-50">
         <button
-          onClick={() => canCreate && navigate(-1)}
-          disabled={!canCreate}
+          onClick={handleCreateTeam}
+          disabled={!canCreate || loading}
           className={`w-full py-4 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${
-            canCreate
+            canCreate && !loading
               ? 'bg-[#a855f7] text-[#ffffff] shadow-[0_4px_20px_rgba(168,85,247,0.35)] hover:bg-[#c799ff] active:scale-[0.98]'
               : 'bg-[#1a1a1a] text-[#565555] cursor-not-allowed'
           }`}
         >
-          Create Team
-          <Sparkles size={16} />
+          {loading ? 'Creating...' : 'Create Team'}
+          {!loading && <Sparkles size={16} />}
         </button>
       </div>
     </div>
