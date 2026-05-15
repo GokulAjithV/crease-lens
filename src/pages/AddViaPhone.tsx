@@ -60,7 +60,7 @@ export default function AddViaPhone() {
                 />
               </div>
             </div>
-            <p className="text-[10px] text-[#565555] mt-2 px-1">We'll send them an SMS invite</p>
+            <p className="text-[10px] text-[#565555] mt-2 px-1">Phone number lets this player claim their stats later</p>
           </div>
 
           {/* Player Name */}
