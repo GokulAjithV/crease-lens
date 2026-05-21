@@ -1,19 +1,17 @@
-import React, { useState } from 'react';
-import { X, Search, Plus, ChevronRight, ArrowLeft } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Search, Plus, ChevronRight, ArrowLeft, Loader2 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
-const allTeams = {
-  yours: [
-    { id: '1', name: 'Village Kings', initials: 'VK', color: '#a855f7', players: 8, matches: 12, sub: 'Created by you · 8 Players' },
-    { id: '2', name: 'Mumbai XI', initials: 'MX', color: '#f59e0b', players: 11, matches: 24, sub: 'Created by you · 11 Players' },
-    { id: '3', name: 'Street Strikers', initials: 'SS', color: '#10b981', players: 9, matches: 6, sub: 'Created by you · 9 Players' },
-  ],
-  opponents: [
-    { id: '4', name: 'Royal Challengers', initials: 'RC', color: '#ef4444', players: 14, matches: 18, sub: '14 Players · 18 Matches' },
-    { id: '5', name: 'Chennai Lions', initials: 'CL', color: '#3b82f6', players: 12, matches: 10, sub: '12 Players · 10 Matches' },
-    { id: '6', name: 'Delhi Dashers', initials: 'DD', color: '#f97316', players: 10, matches: 8, sub: '10 Players · 8 Matches' },
-  ],
-};
+interface TeamData {
+  id: string;
+  name: string;
+  initials: string;
+  color: string;
+  players: number;
+  matches: number;
+  sub: string;
+  created_by?: string;
+}
 
 export default function SelectTeam() {
   const navigate = useNavigate();
@@ -27,13 +25,82 @@ export default function SelectTeam() {
     preselected?.preselectedTeam1 && preselected?.preselectedTeam2 ? 1 : preselected?.preselectedTeam1 ? 2 : 1
   );
 
-  const filterTeams = (teams: typeof allTeams.yours) =>
-    teams.filter((t) => t.name.toLowerCase().includes(search.toLowerCase()));
+  const [yours, setYours] = useState<TeamData[]>([]);
+  const [opponents, setOpponents] = useState<TeamData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const filteredYours = filterTeams(allTeams.yours);
-  const filteredOpponents = filterTeams(allTeams.opponents);
+  useEffect(() => {
+    async function fetchTeams() {
+      try {
+        setError('');
+        setLoading(true);
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+        const token = localStorage.getItem('token');
+        const userStr = localStorage.getItem('user');
+        
+        let currentUserId = '';
+        if (userStr) {
+          try {
+            const userObj = JSON.parse(userStr);
+            currentUserId = userObj.id || '';
+          } catch (e) {
+            console.error('Failed to parse user from localStorage', e);
+          }
+        }
+
+        const response = await fetch(`${API_URL}/api/teams?scope=all`, {
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch teams');
+        }
+
+        const json = await response.json();
+        const rawTeams = json.data || [];
+
+        // Map API response to UI expected fields
+        const mappedTeams = rawTeams.map((team: any) => {
+          const players = team.player_count || 0;
+          const isYours = currentUserId && team.created_by === currentUserId;
+          return {
+            id: team.id,
+            name: team.name,
+            initials: team.initials || team.name.slice(0, 2).toUpperCase(),
+            color: team.avatar_color || '#7c3aed',
+            players: players,
+            matches: 0,
+            sub: isYours ? `Created by you · ${players} Players` : `${players} Players`,
+            created_by: team.created_by,
+          };
+        });
+
+        // Split teams
+        const yourTeams = mappedTeams.filter((t: any) => currentUserId && t.created_by === currentUserId);
+        const opponentTeams = mappedTeams.filter((t: any) => !currentUserId || t.created_by !== currentUserId);
+
+        setYours(yourTeams);
+        setOpponents(opponentTeams);
+      } catch (err: any) {
+        setError(err.message || 'Something went wrong while fetching teams');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchTeams();
+  }, []);
+
+  const filterTeams = (teamsList: TeamData[]) =>
+    teamsList.filter((t) => t.name.toLowerCase().includes(search.toLowerCase()));
+
+  const filteredYours = filterTeams(yours);
+  const filteredOpponents = filterTeams(opponents);
   const allFiltered = [...filteredYours, ...filteredOpponents];
-  const noResults = search.length > 0 && allFiltered.length === 0;
+  const noResults = !loading && search.length > 0 && allFiltered.length === 0;
 
   const handleSelectTeam = (teamId: string) => {
     if (selectingFor === 1) {
@@ -46,7 +113,7 @@ export default function SelectTeam() {
 
   const getTeamById = (id: string | null) => {
     if (!id) return null;
-    return [...allTeams.yours, ...allTeams.opponents].find((t) => t.id === id) || null;
+    return [...yours, ...opponents].find((t) => t.id === id) || null;
   };
 
   const team1 = getTeamById(selectedTeam1);
@@ -170,6 +237,27 @@ export default function SelectTeam() {
 
       {/* Team Lists */}
       <main className="px-4 pb-32 space-y-6">
+
+        {/* Loading State */}
+        {loading && (
+          <div className="flex flex-col items-center justify-center py-12">
+            <Loader2 size={32} className="text-[#a855f7] animate-spin mb-3" />
+            <p className="text-sm text-[#a3a3a3]">Loading teams...</p>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <div className="bg-[#ef4444]/10 border border-[#ef4444]/30 rounded-2xl p-4 text-center">
+            <p className="text-sm text-[#ef4444] mb-2">{error}</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="text-xs text-[#ffffff] underline font-medium hover:text-[#a855f7]"
+            >
+              Retry
+            </button>
+          </div>
+        )}
 
         {/* No Results */}
         {noResults && (
