@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, HelpCircle, MoreVertical, MapPin, Calendar, ChevronRight, Repeat, UserPlus } from 'lucide-react';
+import { ArrowLeft, HelpCircle, MoreVertical, MapPin, Calendar, ChevronRight, Repeat, UserPlus, Loader2 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 interface TeamData {
@@ -12,18 +12,39 @@ interface TeamData {
   sub: string;
 }
 
+// Maps UI labels → DB enum values for match_type
+const matchTypeMap: Record<string, string> = {
+  'Limited Overs': 'Limited',
+  'Box/Turf Cricket': 'Box',
+  'Pair Cricket': 'Pair',
+  'Test Match': 'Test',
+  'The Hundred': 'TheHundred',
+};
+
+// Maps UI labels → DB values for ball_type
+const ballTypeMap: Record<string, string> = {
+  'Leather': 'leather',
+  'Tennis': 'tennis',
+  'Other': 'other',
+};
+
 export default function StartMatch() {
   const navigate = useNavigate();
   const location = useLocation();
   const { team1, team2 } = (location.state as { team1: TeamData | null; team2: TeamData | null }) || { team1: null, team2: null };
 
   const [matchType, setMatchType] = useState('Limited Overs');
-  const [ballType, setBallType] = useState('Leather');
-  const [pitchType, setPitchType] = useState('Turf');
+  const [ballType, setBallType] = useState('Tennis');
+  const [pitchType, setPitchType] = useState('Rough');
   const [wagonWheel, setWagonWheel] = useState(true);
   const [overs, setOvers] = useState('20');
   const [oversPerBowler, setOversPerBowler] = useState('4');
+  const [city, setCity] = useState('');
+  const [venue, setVenue] = useState('');
+  const [scheduledAt, setScheduledAt] = useState('');
   const [showMenu, setShowMenu] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const matchTypes = ['Limited Overs', 'Box/Turf Cricket', 'Pair Cricket', 'Test Match', 'The Hundred'];
   const ballTypes = [
@@ -32,6 +53,53 @@ export default function StartMatch() {
     { id: 'Other', icon: '⚪' },
   ];
   const pitchTypes = ['Turf', 'Rough', 'Cement', 'Astroturf', 'Matting'];
+
+  const handleCreateMatch = async () => {
+    if (!team1 || !team2) return;
+    setError('');
+    setLoading(true);
+
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const token = localStorage.getItem('token');
+
+      const body: Record<string, any> = {
+        team_a_id: team1.id,
+        team_b_id: team2.id,
+        match_type: matchTypeMap[matchType] || 'T20',
+        total_overs: parseInt(overs) || 20,
+        overs_per_bowler: parseInt(oversPerBowler) || 4,
+        ball_type: ballTypeMap[ballType] || 'tennis',
+        pitch_type: pitchType.toLowerCase(),
+      };
+
+      if (city.trim()) body.city = city.trim();
+      if (venue.trim()) body.venue = venue.trim();
+      if (scheduledAt) body.scheduled_at = new Date(scheduledAt).toISOString();
+
+      const response = await fetch(`${API_URL}/api/matches/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(body),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || 'Failed to create match');
+      }
+
+      const matchId = data.data?.id;
+      navigate(`/match/${matchId}/toss`, { state: { team1, team2, matchId } });
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="mx-auto max-w-[390px] min-h-screen bg-[#000000] text-[#ffffff] font-sans relative overflow-x-hidden shadow-2xl">
@@ -67,6 +135,13 @@ export default function StartMatch() {
       </header>
       
       <main className="px-4 py-2 space-y-8 pb-32">
+
+        {/* Error Banner */}
+        {error && (
+          <div className="bg-[#ef4444]/10 border border-[#ef4444]/40 text-[#ef4444] text-xs px-4 py-3 rounded-xl">
+            {error}
+          </div>
+        )}
         
         {/* Teams VS Display */}
         <section className="bg-gradient-to-br from-[#1a1a1a] to-[#111] rounded-2xl p-5">
@@ -174,12 +249,27 @@ export default function StartMatch() {
         {/* Location & Date */}
         <section className="space-y-5">
           <div>
-            <label className="text-[10px] font-bold text-[#565555] tracking-widest uppercase block mb-2">CITY / TOWN*</label>
+            <label className="text-[10px] font-bold text-[#565555] tracking-widest uppercase block mb-2">CITY / TOWN</label>
             <div className="flex items-center border-b border-[#333] pb-2 gap-2">
               <MapPin size={16} className="text-[#565555] flex-shrink-0" />
               <input
                 type="text"
-                placeholder="Search location..."
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                placeholder="e.g. Chennai"
+                className="w-full bg-transparent text-sm text-[#ffffff] outline-none placeholder:text-[#333]"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="text-[10px] font-bold text-[#565555] tracking-widest uppercase block mb-2">VENUE / GROUND</label>
+            <div className="flex items-center border-b border-[#333] pb-2 gap-2">
+              <MapPin size={16} className="text-[#565555] flex-shrink-0" />
+              <input
+                type="text"
+                value={venue}
+                onChange={(e) => setVenue(e.target.value)}
+                placeholder="e.g. Chepauk Stadium"
                 className="w-full bg-transparent text-sm text-[#ffffff] outline-none placeholder:text-[#333]"
               />
             </div>
@@ -189,9 +279,10 @@ export default function StartMatch() {
             <div className="flex items-center border-b border-[#333] pb-2 gap-2">
               <Calendar size={16} className="text-[#565555] flex-shrink-0" />
               <input
-                type="text"
-                placeholder="Select date and time..."
-                className="w-full bg-transparent text-sm text-[#ffffff] outline-none placeholder:text-[#333]"
+                type="datetime-local"
+                value={scheduledAt}
+                onChange={(e) => setScheduledAt(e.target.value)}
+                className="w-full bg-transparent text-sm text-[#ffffff] outline-none placeholder:text-[#333] [color-scheme:dark]"
               />
             </div>
           </div>
@@ -282,11 +373,25 @@ export default function StartMatch() {
           Schedule Match
         </button>
         <button 
-          onClick={() => navigate('/match/1/toss', { state: { team1, team2 } })}
-          className="flex-1 bg-[#a855f7] text-[#ffffff] py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-[#c799ff] transition-colors shadow-[0_4px_16px_rgba(168,85,247,0.3)]"
+          onClick={handleCreateMatch}
+          disabled={!team1 || !team2 || loading}
+          className={`flex-1 py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${
+            !team1 || !team2 || loading
+              ? 'bg-[#333] text-[#565555] cursor-not-allowed'
+              : 'bg-[#a855f7] text-[#ffffff] hover:bg-[#c799ff] shadow-[0_4px_16px_rgba(168,85,247,0.3)]'
+          }`}
         >
-          Next (Toss)
-          <ChevronRight size={16} />
+          {loading ? (
+            <>
+              <Loader2 size={16} className="animate-spin" />
+              Creating...
+            </>
+          ) : (
+            <>
+              Next (Toss)
+              <ChevronRight size={16} />
+            </>
+          )}
         </button>
       </div>
     </div>
