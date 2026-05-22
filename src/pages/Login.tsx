@@ -34,7 +34,13 @@ export default function Login() {
       localStorage.setItem('token', data.access_token);
       localStorage.setItem('user', JSON.stringify(data.user));
 
-      navigate('/home');
+      const pendingJoinToken = localStorage.getItem('pendingJoinToken');
+      if (pendingJoinToken) {
+        localStorage.removeItem('pendingJoinToken');
+        navigate(`/join/${pendingJoinToken}`);
+      } else {
+        navigate('/home');
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
