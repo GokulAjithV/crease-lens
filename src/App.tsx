@@ -9,6 +9,8 @@ import AddTeam from './pages/AddTeam'
 import AddPlayers from './pages/AddPlayers'
 import AddViaPhone from './pages/AddViaPhone'
 import AddFromContacts from './pages/AddFromContacts'
+import AddGuestPlayer from './pages/AddGuestPlayer'
+import JoinTeam from './pages/JoinTeam'
 import Toss from './pages/Toss'
 import PlayingXI from './pages/PlayingXI'
 import LiveScoring from './pages/LiveScoring'
@@ -43,8 +45,10 @@ export default function App() {
         {/* Team Management Flow */}
         <Route path="/team/add" element={<AddTeam />} />
         <Route path="/team/:teamId/players" element={<AddPlayers />} />
+        <Route path="/join/:token" element={<JoinTeam />} />
         <Route path="/team/:teamId/players/phone" element={<AddViaPhone />} />
         <Route path="/team/:teamId/players/contacts" element={<AddFromContacts />} />
+        <Route path="/team/:teamId/players/guest" element={<AddGuestPlayer />} />
 
         {/* Player */}
         <Route path="/player/:playerId" element={<PlayerProfile />} />
