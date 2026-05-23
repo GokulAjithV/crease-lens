@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Play, Plus, RotateCcw, Share2, Trophy, Sparkles, Menu, X, User, BarChart3, Users, Zap, ClipboardList, Radio, LogOut } from 'lucide-react';
+import { Play, Plus, RotateCcw, Share2, Trophy, Sparkles, Menu, X, User, BarChart3, Users, Zap, ClipboardList, Radio, LogOut, Loader2 } from 'lucide-react';
 import BottomNav from '../components/layout/BottomNav';
 
 const menuItems = [
@@ -15,6 +15,30 @@ const menuItems = [
 export default function Homepage() {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
+  
+  const [liveMatches, setLiveMatches] = useState<any[]>([]);
+  const [loadingLive, setLoadingLive] = useState(true);
+
+  useEffect(() => {
+    async function fetchLiveMatches() {
+      try {
+        setLoadingLive(true);
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+        const res = await fetch(`${API_URL}/api/matches/live`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.data) {
+            setLiveMatches(data.data);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch live matches', err);
+      } finally {
+        setLoadingLive(false);
+      }
+    }
+    fetchLiveMatches();
+  }, []);
 
   // Load user from local storage
   const userStr = localStorage.getItem('user');
@@ -137,57 +161,154 @@ export default function Homepage() {
       <main className="px-4 py-2 space-y-6">
         
         {/* Live Match Card */}
-        <section className="bg-gradient-to-br from-[#281b40] to-[#1a1a1a] rounded-2xl p-5 relative border border-[#2a1a3a] shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-[#a855f7] rounded-b-2xl"></div>
-          
-          {/* Header */}
-          <div className="flex justify-between items-center mb-6">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-[#10b981]"></div>
-              <span className="text-[#10b981] text-[10px] font-bold tracking-widest uppercase">Live Match</span>
+        {loadingLive ? (
+          <section className="bg-[#161616] rounded-2xl p-6 border border-[#222] flex flex-col items-center justify-center py-12 gap-2">
+            <Loader2 className="animate-spin text-[#a855f7]" size={24} />
+            <span className="text-xs text-[#a3a3a3]">Checking live matches...</span>
+          </section>
+        ) : liveMatches.length === 0 ? (
+          <section className="bg-gradient-to-br from-[#1a1a1a] to-[#111] rounded-2xl p-5 border border-[#222] shadow-[0_4px_20px_rgba(0,0,0,0.5)] flex flex-col items-center justify-center text-center gap-4 py-8 relative">
+            <div className="absolute bottom-0 left-0 right-0 h-1 bg-[#565555] rounded-b-2xl"></div>
+            <div className="w-12 h-12 rounded-full bg-[#a855f7]/10 flex items-center justify-center">
+              <Zap size={24} className="text-[#a855f7]" />
             </div>
-            <div className="bg-[#1f1f1f] px-3 py-1 rounded-md">
-              <span className="text-xs font-semibold">T20 League</span>
+            <div>
+              <h4 className="text-sm font-bold text-white">No Live Matches</h4>
+              <p className="text-xs text-[#a3a3a3] mt-1 max-w-[240px] leading-relaxed">
+                Create a new match and start scoring to see live updates.
+              </p>
             </div>
-          </div>
-
-          {/* Teams and Score */}
-          <div className="flex justify-between items-center mb-6">
-            <div className="flex flex-col items-center gap-2">
-              <div className="w-14 h-14 rounded-full border border-[#a855f7] bg-[#1a1a1a] flex items-center justify-center">
-                <span className="font-bold text-lg text-[#c799ff]">RCB</span>
-              </div>
-              <span className="text-xs font-semibold">Royal Chal</span>
-            </div>
-            
-            <div className="flex flex-col items-center">
-              <div className="flex items-baseline">
-                <span className="text-4xl font-black">184</span>
-                <span className="text-xl text-[#a3a3a3] font-bold">/4</span>
-              </div>
-              <span className="text-[10px] text-[#a3a3a3] font-bold tracking-widest mt-1">OVERS 16.2</span>
-            </div>
-            
-            <div className="flex flex-col items-center gap-2">
-              <div className="w-14 h-14 rounded-full border border-[#333] bg-[#1a1a1a] flex items-center justify-center">
-                <span className="font-bold text-lg text-[#a3a3a3]">CSK</span>
-              </div>
-              <div className="flex flex-col items-center">
-                <span className="text-xs font-semibold">Super Kings</span>
-                <span className="text-[8px] text-[#a855f7] font-bold mt-1 tracking-widest">YET TO BAT</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Footer */}
-          <div className="flex justify-between items-center mt-2">
-            <span className="text-sm text-[#a3a3a3] font-medium">Run Rate: 11.3</span>
-            <button className="bg-[#a855f7] hover:bg-[#c799ff] transition-colors text-[#000000] font-bold py-2 px-4 rounded-full flex items-center gap-2 text-xs">
-              <Play size={12} className="fill-black" />
-              Watch Live
+            <button
+              onClick={() => navigate('/match/select-team')}
+              className="bg-[#a855f7] hover:bg-[#c799ff] text-black font-bold py-2 px-6 rounded-full text-xs transition-colors shadow-lg"
+            >
+              Start Match
             </button>
-          </div>
-        </section>
+          </section>
+        ) : (() => {
+          const match = liveMatches[0];
+          const teamA = match.team_a;
+          const teamB = match.team_b;
+          const innings = match.current_innings;
+          
+          let isTeamABatting = false;
+          let isTeamBBatting = false;
+          let runs = 0;
+          let wickets = 0;
+          let overs = "0.0";
+          
+          if (innings) {
+            isTeamABatting = innings.batting_team_id === teamA.id;
+            isTeamBBatting = innings.batting_team_id === teamB.id;
+            runs = innings.total_runs || 0;
+            wickets = innings.total_wickets || 0;
+            overs = String(innings.overs_played || "0.0");
+          }
+
+          // Simple run rate helper
+          const floatOvers = parseFloat(overs) || 0.0;
+          const totalBalls = Math.floor(floatOvers) * 6 + Math.round((floatOvers - Math.floor(floatOvers)) * 10);
+          const runRate = totalBalls > 0 ? ((runs / totalBalls) * 6).toFixed(1) : "0.0";
+
+          return (
+            <section className="bg-gradient-to-br from-[#281b40] to-[#1a1a1a] rounded-2xl p-5 relative border border-[#2a1a3a] shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
+              <div className="absolute bottom-0 left-0 right-0 h-1 bg-[#a855f7] rounded-b-2xl"></div>
+              
+              {/* Header */}
+              <div className="flex justify-between items-center mb-6">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-[#10b981] animate-pulse"></div>
+                  <span className="text-[#10b981] text-[10px] font-bold tracking-widest uppercase">Live Match</span>
+                </div>
+                <div className="bg-[#1f1f1f] px-3 py-1 rounded-md">
+                  <span className="text-xs font-semibold">{match.match_type || 'T20'}</span>
+                </div>
+              </div>
+
+              {/* Teams and Score */}
+              <div className="flex justify-between items-center mb-6">
+                {/* Team A */}
+                <div className="flex flex-col items-center gap-2 flex-1 min-w-0">
+                  <div 
+                    className="w-14 h-14 rounded-full border flex items-center justify-center"
+                    style={{ 
+                      backgroundColor: '#1a1a1a', 
+                      borderColor: isTeamABatting ? teamA.color : '#333'
+                    }}
+                  >
+                    <span 
+                      className="font-bold text-lg" 
+                      style={{ color: isTeamABatting ? '#ffffff' : '#a3a3a3' }}
+                    >
+                      {teamA.initials}
+                    </span>
+                  </div>
+                  <span className="text-xs font-semibold truncate w-full text-center">{teamA.name}</span>
+                  {isTeamABatting && (
+                    <span className="text-[8px] bg-[#a855f7]/25 text-[#c799ff] font-bold px-1.5 py-0.5 rounded">BATTING</span>
+                  )}
+                </div>
+                
+                {/* Center score */}
+                <div className="flex flex-col items-center justify-center px-2">
+                  {innings ? (
+                    <>
+                      <div className="flex items-baseline">
+                        <span className="text-4xl font-black">{runs}</span>
+                        <span className="text-xl text-[#a3a3a3] font-bold">/{wickets}</span>
+                      </div>
+                      <span className="text-[10px] text-[#a3a3a3] font-bold tracking-widest mt-1">OVERS {overs}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-2xl font-black text-[#565555]">VS</span>
+                      <span className="text-[8px] text-[#a855f7] font-bold mt-1 tracking-widest uppercase">
+                        {match.status}
+                      </span>
+                    </>
+                  )}
+                </div>
+                
+                {/* Team B */}
+                <div className="flex flex-col items-center gap-2 flex-1 min-w-0">
+                  <div 
+                    className="w-14 h-14 rounded-full border flex items-center justify-center"
+                    style={{ 
+                      backgroundColor: '#1a1a1a', 
+                      borderColor: isTeamBBatting ? teamB.color : '#333'
+                    }}
+                  >
+                    <span 
+                      className="font-bold text-lg" 
+                      style={{ color: isTeamBBatting ? '#ffffff' : '#a3a3a3' }}
+                    >
+                      {teamB.initials}
+                    </span>
+                  </div>
+                  <span className="text-xs font-semibold truncate w-full text-center">{teamB.name}</span>
+                  {isTeamBBatting && (
+                    <span className="text-[8px] bg-[#a855f7]/25 text-[#c799ff] font-bold px-1.5 py-0.5 rounded">BATTING</span>
+                  )}
+                  {!isTeamABatting && !isTeamBBatting && (
+                    <span className="text-[8px] text-[#565555] font-bold mt-1 tracking-widest">YET TO BAT</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="flex justify-between items-center mt-2">
+                <span className="text-sm text-[#a3a3a3] font-medium">Run Rate: {runRate}</span>
+                <button 
+                  onClick={() => navigate(`/match/${match.id}/scorecard`)}
+                  className="bg-[#a855f7] hover:bg-[#c799ff] transition-colors text-[#000000] font-bold py-2 px-4 rounded-full flex items-center gap-2 text-xs"
+                >
+                  <Play size={12} className="fill-black" />
+                  Watch Live
+                </button>
+              </div>
+            </section>
+          );
+        })()}
 
         {/* Quick Actions */}
         <section className="flex gap-3">

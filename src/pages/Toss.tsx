@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { ArrowLeft, RotateCcw, Swords, Shield } from 'lucide-react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { ArrowLeft, RotateCcw, Swords, Shield, Loader2 } from 'lucide-react';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
 
 interface TeamData {
   id: string;
@@ -17,12 +17,15 @@ type Step = 'toss_winner' | 'decision' | 'confirmed';
 export default function Toss() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { matchId } = useParams<{ matchId: string }>();
   const { team1, team2 } = (location.state as { team1: TeamData | null; team2: TeamData | null }) || { team1: null, team2: null };
 
   const [step, setStep] = useState<Step>('toss_winner');
   const [tossWinner, setTossWinner] = useState<TeamData | null>(null);
   const [decision, setDecision] = useState<'bat' | 'bowl' | null>(null);
   const [isFlipping, setIsFlipping] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const tossLoser = tossWinner?.id === team1?.id ? team2 : team1;
 
@@ -41,8 +44,39 @@ export default function Toss() {
     setStep('confirmed');
   };
 
-  const handleProceed = () => {
-    navigate(`/match/1/playing-xi/${team1?.id || '1'}`, { state: { team1, team2, tossWinner, decision, currentTeamIndex: 0 } });
+  const handleProceed = async () => {
+    if (!matchId || !tossWinner || !decision) return;
+    try {
+      setLoading(true);
+      setError('');
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const token = localStorage.getItem('token');
+
+      const response = await fetch(`${API_URL}/api/matches/${matchId}/toss`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          toss_winner_id: tossWinner.id,
+          toss_election: decision,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to record toss');
+      }
+
+      navigate(`/match/${matchId}/playing-xi/${team1?.id}`, {
+        state: { team1, team2, tossWinner, decision, currentTeamIndex: 0 },
+      });
+    } catch (err: any) {
+      setError(err.message || 'Error recording toss');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -57,6 +91,12 @@ export default function Toss() {
       </header>
 
       <main className="px-4 flex flex-col items-center justify-center" style={{ minHeight: 'calc(100vh - 72px - 100px)' }}>
+
+        {error && (
+          <div className="w-full mb-4 bg-[#ef4444]/10 border border-[#ef4444]/20 rounded-xl p-3 text-center text-xs text-[#ef4444]">
+            {error}
+          </div>
+        )}
 
         {/* Step 1: Who won the toss */}
         {step === 'toss_winner' && !isFlipping && (
@@ -226,8 +266,10 @@ export default function Toss() {
         <div className="fixed bottom-0 w-full max-w-[390px] bg-gradient-to-t from-[#000000] via-[#000000] to-transparent px-4 pt-6 pb-8 z-50">
           <button
             onClick={handleProceed}
-            className="w-full bg-[#a855f7] text-[#ffffff] py-4 rounded-2xl font-bold text-sm shadow-[0_4px_20px_rgba(168,85,247,0.35)] hover:bg-[#c799ff] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+            disabled={loading}
+            className="w-full bg-[#a855f7] text-[#ffffff] py-4 rounded-2xl font-bold text-sm shadow-[0_4px_20px_rgba(168,85,247,0.35)] hover:bg-[#c799ff] active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
           >
+            {loading && <Loader2 size={16} className="animate-spin" />}
             Select Playing XI
             <span className="text-base">→</span>
           </button>
