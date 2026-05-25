@@ -248,37 +248,90 @@ export default function LiveScoring() {
   };
 
   const syncActiveBatsmen = (innId: string, matchState: any) => {
-    // If scorecard contains batsmen details, we can sync
+    const innDeliveries = matchState.deliveries?.filter((d: any) => d.innings_id === innId) || [];
+    if (innDeliveries.length === 0) {
+      return;
+    }
+
+    // Sort chronologically using raw_ball_number
+    innDeliveries.sort((a: any, b: any) => (a.raw_ball_number || 0) - (b.raw_ball_number || 0));
+    
+    const lastBall = innDeliveries[innDeliveries.length - 1];
+    const squadList = (matchState.squad_a || []).concat(matchState.squad_b || []);
+    const getSquadMemberFromState = (id: string) => squadList.find((p: any) => p.id === id);
     const card = matchState.scorecard?.scorecard?.find((s: any) => s.innings_id === innId);
-    if (card && card.batsmen) {
-      const activeIds = Object.keys(card.batsmen);
-      if (activeIds.length > 0 && !striker) {
-        const id1 = activeIds[0];
-        const p1 = getSquadMember(id1);
-        if (p1) {
-          setStriker({
-            id: id1,
-            name: p1.name,
-            runs: card.batsmen[id1].runs,
-            balls: card.batsmen[id1].balls,
-            fours: card.batsmen[id1].fours,
-            sixes: card.batsmen[id1].sixes
-          });
-        }
+
+    if (lastBall.is_wicket) {
+      const dismissedId = lastBall.dismissed_id;
+      const survivorId = lastBall.batsman_id === dismissedId ? lastBall.non_striker_id : lastBall.batsman_id;
+      
+      const survivorPlayer = getSquadMemberFromState(survivorId);
+      const survivorStats = card?.batsmen?.[survivorId] || { runs: 0, balls: 0, fours: 0, sixes: 0 };
+
+      const survivorObj = survivorPlayer ? {
+        id: survivorId,
+        name: survivorPlayer.name,
+        runs: survivorStats.runs,
+        balls: survivorStats.balls,
+        fours: survivorStats.fours,
+        sixes: survivorStats.sixes
+      } : null;
+
+      if (lastBall.batsman_id === dismissedId) {
+        setNonStriker(survivorObj);
+        setStriker(null);
+        setSelectingRole('replacement');
+        setShowBatsmanSheet(true);
+      } else {
+        setStriker(survivorObj);
+        setNonStriker(null);
+        setSelectingRole('nonStriker');
+        setShowBatsmanSheet(true);
       }
-      if (activeIds.length > 1 && !nonStriker) {
-        const id2 = activeIds[1];
-        const p2 = getSquadMember(id2);
-        if (p2) {
-          setNonStriker({
-            id: id2,
-            name: p2.name,
-            runs: card.batsmen[id2].runs,
-            balls: card.batsmen[id2].balls,
-            fours: card.batsmen[id2].fours,
-            sixes: card.batsmen[id2].sixes
-          });
-        }
+    } else {
+      const bId = lastBall.batsman_id;
+      const nsId = lastBall.non_striker_id;
+
+      const p1 = getSquadMemberFromState(bId);
+      const p2 = getSquadMemberFromState(nsId);
+
+      const stats1 = card?.batsmen?.[bId] || { runs: 0, balls: 0, fours: 0, sixes: 0 };
+      const stats2 = card?.batsmen?.[nsId] || { runs: 0, balls: 0, fours: 0, sixes: 0 };
+
+      const obj1 = p1 ? {
+        id: bId,
+        name: p1.name,
+        runs: stats1.runs,
+        balls: stats1.balls,
+        fours: stats1.fours,
+        sixes: stats1.sixes
+      } : null;
+
+      const obj2 = p2 ? {
+        id: nsId,
+        name: p2.name,
+        runs: stats2.runs,
+        balls: stats2.balls,
+        fours: stats2.fours,
+        sixes: stats2.sixes
+      } : null;
+
+      const runsBatsman = lastBall.runs_batsman || 0;
+      const floatOvers = parseFloat(card?.overs || "0.0");
+      const ballsInOver = Math.round((floatOvers - Math.floor(floatOvers)) * 10);
+      const overJustCompleted = (ballsInOver === 0 && floatOvers > 0);
+
+      let shouldRotate = (runsBatsman % 2 !== 0);
+      if (overJustCompleted) {
+        shouldRotate = !shouldRotate;
+      }
+
+      if (shouldRotate) {
+        setStriker(obj2);
+        setNonStriker(obj1);
+      } else {
+        setStriker(obj1);
+        setNonStriker(obj2);
       }
     }
   };
