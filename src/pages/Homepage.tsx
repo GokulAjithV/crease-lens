@@ -40,6 +40,41 @@ export default function Homepage() {
     fetchLiveMatches();
   }, []);
 
+  const handleResumeScoring = async () => {
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const token = localStorage.getItem('token');
+      
+      const res = await fetch(`${API_URL}/api/matches?limit=20`, {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const matchesList = data.data || [];
+        
+        // Find latest match created by user that is not completed or abandoned
+        const resumeMatch = matchesList.find(
+          (m: any) => m.created_by === user?.id && !['completed', 'abandoned'].includes(m.status)
+        );
+        
+        if (resumeMatch) {
+          if (resumeMatch.status === 'setup') {
+            navigate(`/match/${resumeMatch.id}/toss`);
+          } else {
+            navigate(`/match/${resumeMatch.id}/scoring`);
+          }
+        } else {
+          alert('No active matches found to resume. Start a new match!');
+          navigate('/match/select-team');
+        }
+      }
+    } catch (err) {
+      console.error('Failed to resume scoring', err);
+    }
+  };
+
   // Load user from local storage
   const userStr = localStorage.getItem('user');
   const user = userStr ? JSON.parse(userStr) : null;
@@ -298,13 +333,24 @@ export default function Homepage() {
               {/* Footer */}
               <div className="flex justify-between items-center mt-2">
                 <span className="text-sm text-[#a3a3a3] font-medium">Run Rate: {runRate}</span>
-                <button 
-                  onClick={() => navigate(`/match/${match.id}/scorecard`)}
-                  className="bg-[#a855f7] hover:bg-[#c799ff] transition-colors text-[#000000] font-bold py-2 px-4 rounded-full flex items-center gap-2 text-xs"
-                >
-                  <Play size={12} className="fill-black" />
-                  Watch Live
-                </button>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => navigate(`/match/${match.id}/scorecard`)}
+                    className="bg-[#1f1f1f] border border-[#333] hover:bg-[#2a2a2a] text-[#ffffff] font-bold py-2 px-4 rounded-full flex items-center gap-2 text-xs transition-colors"
+                  >
+                    <Play size={12} className="fill-[#fff]" />
+                    Watch
+                  </button>
+                  {match.created_by === user?.id && (
+                    <button 
+                      onClick={() => navigate(`/match/${match.id}/scoring`)}
+                      className="bg-[#a855f7] hover:bg-[#c799ff] text-[#000000] font-bold py-2 px-4 rounded-full flex items-center gap-2 text-xs transition-colors"
+                    >
+                      <RotateCcw size={12} />
+                      Score
+                    </button>
+                  )}
+                </div>
               </div>
             </section>
           );
@@ -318,8 +364,8 @@ export default function Homepage() {
             </div>
             <span className="text-[11px] font-bold text-[#c799ff]">START MATCH</span>
           </div>
-          <div className="flex-[0.8] bg-[#161616] rounded-xl p-4 flex flex-col justify-center items-center text-center cursor-pointer hover:bg-[#1f1f1f] transition-colors h-[90px]">
-            <RotateCcw size={20} className="text-[#565555] mb-2" />
+          <div onClick={handleResumeScoring} className="flex-[0.8] bg-[#161616] rounded-xl p-4 flex flex-col justify-center items-center text-center cursor-pointer hover:bg-[#1f1f1f] transition-colors h-[90px]">
+            <RotateCcw size={20} className="text-[#a855f7] mb-2" />
             <span className="text-[9px] font-bold text-[#a3a3a3]">RESUME SCORING</span>
           </div>
           <div className="flex-[0.6] bg-[#161616] rounded-xl p-4 flex flex-col justify-center items-center text-center cursor-pointer hover:bg-[#1f1f1f] transition-colors h-[90px]">
