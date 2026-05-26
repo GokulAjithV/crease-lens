@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowLeft, HelpCircle, MoreVertical, MapPin, Calendar, ChevronRight, Repeat, UserPlus, Loader2 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -33,18 +33,33 @@ export default function StartMatch() {
   const location = useLocation();
   const { team1, team2 } = (location.state as { team1: TeamData | null; team2: TeamData | null }) || { team1: null, team2: null };
 
-  const [matchType, setMatchType] = useState('Limited Overs');
-  const [ballType, setBallType] = useState('Tennis');
-  const [pitchType, setPitchType] = useState('Rough');
-  const [wagonWheel, setWagonWheel] = useState(true);
-  const [overs, setOvers] = useState('20');
-  const [oversPerBowler, setOversPerBowler] = useState('4');
-  const [city, setCity] = useState('');
-  const [venue, setVenue] = useState('');
-  const [scheduledAt, setScheduledAt] = useState('');
+  const [matchType, setMatchType] = useState(() => sessionStorage.getItem('setup_matchType') || 'Limited Overs');
+  const [ballType, setBallType] = useState(() => sessionStorage.getItem('setup_ballType') || 'Tennis');
+  const [pitchType, setPitchType] = useState(() => sessionStorage.getItem('setup_pitchType') || 'Rough');
+  const [wagonWheel, setWagonWheel] = useState(() => {
+    const saved = sessionStorage.getItem('setup_wagonWheel');
+    return saved !== null ? saved === 'true' : true;
+  });
+  const [overs, setOvers] = useState(() => sessionStorage.getItem('setup_overs') || '20');
+  const [oversPerBowler, setOversPerBowler] = useState(() => sessionStorage.getItem('setup_oversPerBowler') || '4');
+  const [city, setCity] = useState(() => sessionStorage.getItem('setup_city') || '');
+  const [venue, setVenue] = useState(() => sessionStorage.getItem('setup_venue') || '');
+  const [scheduledAt, setScheduledAt] = useState(() => sessionStorage.getItem('setup_scheduledAt') || '');
   const [showMenu, setShowMenu] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    sessionStorage.setItem('setup_matchType', matchType);
+    sessionStorage.setItem('setup_ballType', ballType);
+    sessionStorage.setItem('setup_pitchType', pitchType);
+    sessionStorage.setItem('setup_wagonWheel', String(wagonWheel));
+    sessionStorage.setItem('setup_overs', overs);
+    sessionStorage.setItem('setup_oversPerBowler', oversPerBowler);
+    sessionStorage.setItem('setup_city', city);
+    sessionStorage.setItem('setup_venue', venue);
+    sessionStorage.setItem('setup_scheduledAt', scheduledAt);
+  }, [matchType, ballType, pitchType, wagonWheel, overs, oversPerBowler, city, venue, scheduledAt]);
 
   const matchTypes = ['Limited Overs', 'Box/Turf Cricket', 'Pair Cricket', 'Test Match', 'The Hundred'];
   const ballTypes = [

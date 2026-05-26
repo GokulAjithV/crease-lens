@@ -93,6 +93,17 @@ export default function LiveScoring() {
   // Load match state on mount
   useEffect(() => {
     fetchMatchState();
+    
+    // Clear match setup state from sessionStorage as setup is complete
+    sessionStorage.removeItem('setup_matchType');
+    sessionStorage.removeItem('setup_ballType');
+    sessionStorage.removeItem('setup_pitchType');
+    sessionStorage.removeItem('setup_wagonWheel');
+    sessionStorage.removeItem('setup_overs');
+    sessionStorage.removeItem('setup_oversPerBowler');
+    sessionStorage.removeItem('setup_city');
+    sessionStorage.removeItem('setup_venue');
+    sessionStorage.removeItem('setup_scheduledAt');
   }, [matchId]);
 
   const fetchMatchState = async () => {
