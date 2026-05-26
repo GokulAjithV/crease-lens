@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowLeft, Search, X, Star, Shield, ChevronRight, Loader2, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Search, X, Star, Shield, ChevronRight, Loader2, AlertCircle, UserPlus } from 'lucide-react';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
 
 interface TeamData {
@@ -201,14 +201,23 @@ export default function PlayingXI() {
               <p className="text-xs text-[#a3a3a3] m-0">{currentTeam?.name || 'Team'}</p>
             </div>
           </div>
-          {/* Player Count Badge */}
-          <div className={`px-3 py-1.5 rounded-full flex items-center gap-1 ${
-            selected.size === maxPlayers ? 'bg-[#10b981]/20 border border-[#10b981]/30' : 'bg-[#2d1b4e] border border-[#a855f7]/30'
-          }`}>
-            <span className={`text-sm font-black ${selected.size === maxPlayers ? 'text-[#10b981]' : 'text-[#c799ff]'}`}>
-              {selected.size}
-            </span>
-            <span className="text-[10px] font-bold text-[#a3a3a3]">/ {maxPlayers}</span>
+          {/* Action buttons */}
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => navigate(`/team/${teamId}/players`)}
+              className="px-3 py-1.5 rounded-full bg-[#161616] border border-[#333] hover:bg-[#222] transition-colors flex items-center gap-1 text-[10px] font-bold text-[#a855f7]"
+            >
+              <UserPlus size={12} />
+              ADD
+            </button>
+            <div className={`px-3 py-1.5 rounded-full flex items-center gap-1 transition-all ${
+              selected.size === maxPlayers ? 'bg-[#10b981]/20 border border-[#10b981]/30' : 'bg-[#2d1b4e] border border-[#a855f7]/30'
+            }`}>
+              <span className={`text-sm font-black ${selected.size === maxPlayers ? 'text-[#10b981]' : 'text-[#c799ff]'}`}>
+                {selected.size}
+              </span>
+              <span className="text-[10px] font-bold text-[#a3a3a3]">/ {maxPlayers}</span>
+            </div>
           </div>
         </div>
 
@@ -260,6 +269,17 @@ export default function PlayingXI() {
           <div className="flex flex-col items-center justify-center py-16 gap-2 text-xs text-[#a3a3a3]">
             <Loader2 size={24} className="animate-spin text-[#a855f7]" />
             <span>Loading squad roster...</span>
+          </div>
+        ) : players.length === 0 ? (
+          <div className="text-center py-16 flex flex-col items-center gap-4 bg-[#111] rounded-2xl p-6 border border-[#222]">
+            <span className="text-xs text-[#a3a3a3] leading-relaxed">No players found in this team's roster yet. Add players to build your Playing XI.</span>
+            <button
+              onClick={() => navigate(`/team/${teamId}/players`)}
+              className="bg-[#a855f7] hover:bg-[#c799ff] text-black font-bold py-2.5 px-6 rounded-xl text-xs transition-colors flex items-center gap-1.5"
+            >
+              <UserPlus size={14} />
+              Add Players to Team
+            </button>
           </div>
         ) : filteredPlayers.length === 0 ? (
           <div className="text-center py-16 text-xs text-[#565555]">
