@@ -62,6 +62,8 @@ export default function Homepage() {
         if (resumeMatch) {
           if (resumeMatch.status === 'setup') {
             navigate(`/match/${resumeMatch.id}/toss`);
+          } else if (resumeMatch.status === 'toss') {
+            navigate(`/match/${resumeMatch.id}/playing-xi/${resumeMatch.team_a_id}`);
           } else {
             navigate(`/match/${resumeMatch.id}/scoring`);
           }
@@ -343,7 +345,15 @@ export default function Homepage() {
                   </button>
                   {match.created_by === user?.id && (
                     <button 
-                      onClick={() => navigate(`/match/${match.id}/scoring`)}
+                      onClick={() => {
+                        if (match.status === 'setup') {
+                          navigate(`/match/${match.id}/toss`);
+                        } else if (match.status === 'toss') {
+                          navigate(`/match/${match.id}/playing-xi/${match.team_a.id}`);
+                        } else {
+                          navigate(`/match/${match.id}/scoring`);
+                        }
+                      }}
                       className="bg-[#a855f7] hover:bg-[#c799ff] text-[#000000] font-bold py-2 px-4 rounded-full flex items-center gap-2 text-xs transition-colors"
                     >
                       <RotateCcw size={12} />

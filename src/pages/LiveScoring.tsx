@@ -555,6 +555,83 @@ export default function LiveScoring() {
     setSelectedWicketType(null);
   };
 
+  const handleStartSecondInnings = async () => {
+    if (!matchId || !match) return;
+    try {
+      setLoading(true);
+      setError('');
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const token = localStorage.getItem('token');
+
+      const inn1 = match.innings?.find((i: any) => i.innings_number === 1);
+      if (!inn1) throw new Error("Innings 1 details not found");
+
+      // Swap teams
+      const battingTeamId = inn1.bowling_team_id;
+      const bowlingTeamId = inn1.batting_team_id;
+
+      const res = await fetch(`${API_URL}/api/matches/${matchId}/innings/start`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          innings_number: 2,
+          batting_team_id: battingTeamId,
+          bowling_team_id: bowlingTeamId
+        })
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.detail || 'Failed to start second innings');
+      }
+
+      // Reset local striker/non-striker/bowler state
+      setStriker(null);
+      setNonStriker(null);
+      setActiveBowler(null);
+      setActiveOverId(null);
+      setThisOver([]);
+      
+      // Reload match state
+      await fetchMatchState();
+    } catch (err: any) {
+      setError(err.message || 'Failed to start second innings');
+      setLoading(false);
+    }
+  };
+
+  const getMatchResultString = () => {
+    const inn1 = match?.innings?.find((i: any) => i.innings_number === 1);
+    const inn2 = match?.innings?.find((i: any) => i.innings_number === 2);
+    if (!inn1 || !inn2) return "";
+
+    const team1Name = match?.team_a?.name || "Team A";
+    const team2Name = match?.team_b?.name || "Team B";
+
+    const runs1 = inn1.total_runs || 0;
+    const runs2 = inn2.total_runs || 0;
+    const wickets2 = inn2.total_wickets || 0;
+
+    const bat2TeamId = inn2.batting_team_id;
+    const bat2TeamName = bat2TeamId === match?.team_a?.id ? team1Name : team2Name;
+    const bat1TeamName = bat2TeamId === match?.team_a?.id ? team2Name : team1Name;
+
+    if (runs2 > runs1) {
+      const battingSquad = bat2TeamId === match?.team_a?.id ? match?.squad_a : match?.squad_b;
+      const squadSize = battingSquad?.length || 11;
+      const wicketsLeft = squadSize - wickets2;
+      return `${bat2TeamName} won by ${wicketsLeft} wicket${wicketsLeft !== 1 ? 's' : ''} 🏆`;
+    } else if (runs2 < runs1) {
+      const margin = runs1 - runs2;
+      return `${bat1TeamName} won by ${margin} run${margin !== 1 ? 's' : ''} 🏆`;
+    } else {
+      return "Match Tied! 🤝";
+    }
+  };
+
   if (loading) {
     return (
       <div className="mx-auto max-w-[390px] min-h-screen bg-[#000000] text-[#ffffff] flex flex-col items-center justify-center gap-3">
@@ -569,9 +646,15 @@ export default function LiveScoring() {
     (p: any) => p.id !== striker?.id && p.id !== nonStriker?.id
   );
 
+  // Find the last completed over in the current innings
+  const lastCompletedOver = match?.overs
+    ?.filter((o: any) => o.innings_id === inningsId && o.is_completed)
+    ?.sort((a: any, b: any) => b.over_number - a.over_number)[0];
+  const lastBowlerId = lastCompletedOver?.bowler_id || null;
+
   // Available bowlers (cannot bowl consecutive overs)
   const availableBowlers = (bowlingSquad || []).filter(
-    (p: any) => p.id !== activeBowler?.id
+    (p: any) => p.id !== lastBowlerId && p.id !== activeBowler?.id
   );
 
   return (
@@ -632,166 +715,248 @@ export default function LiveScoring() {
       {/* Main Scoring Dashboard */}
       <main className="px-4 space-y-4">
         
-        {/* Openers / Active Batsmen Setup Trigger */}
-        {(!striker || !nonStriker) && (
-          <div className="bg-[#1a1a1a] border border-[#a855f7]/30 rounded-2xl p-4 flex flex-col gap-3 items-center text-center">
-            <Swords className="text-[#c799ff]" size={24} />
-            <div>
-              <h4 className="text-xs font-bold text-white">Select Opening Batsmen</h4>
-              <p className="text-[10px] text-[#a3a3a3] mt-0.5">Assign batsman at strike and non-striker to start.</p>
+        {/* Innings Break Card */}
+        {match?.match?.status === 'innings_break' && (
+          <div className="bg-gradient-to-br from-[#2d1b4e] to-[#111] border border-[#a855f7]/30 rounded-2xl p-6 text-center space-y-4 my-4 animate-fadeIn">
+            <div className="w-12 h-12 rounded-full bg-[#a855f7]/20 flex items-center justify-center mx-auto text-[#a855f7]">
+              <Swords size={24} />
             </div>
-            <div className="flex gap-2 w-full">
-              {!striker && (
-                <button
-                  onClick={() => { setSelectingRole('striker'); setShowBatsmanSheet(true); }}
-                  className="flex-1 bg-[#a855f7] text-black font-bold py-2 rounded-xl text-xs"
-                >
-                  Set Striker
-                </button>
-              )}
-              {!nonStriker && (
-                <button
-                  onClick={() => { setSelectingRole('nonStriker'); setShowBatsmanSheet(true); }}
-                  className="flex-1 bg-[#242424] text-white font-bold py-2 rounded-xl text-xs hover:bg-[#333]"
-                >
-                  Set Non-Striker
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Bowler Setup Trigger */}
-        {!activeBowler && (
-          <div className="bg-[#1a1a1a] border border-[#f59e0b]/30 rounded-2xl p-4 flex flex-col gap-3 items-center text-center">
-            <Shield className="text-[#fbbf24]" size={24} />
             <div>
-              <h4 className="text-xs font-bold text-white">Set Bowler for Over {overs + 1}</h4>
-              <p className="text-[10px] text-[#a3a3a3] mt-0.5">Assign bowler to begin scoring deliveries.</p>
+              <h3 className="text-base font-black text-white">Innings 1 Completed</h3>
+              {(() => {
+                const inn1 = match.innings?.find((i: any) => i.innings_number === 1);
+                if (!inn1) return null;
+                const battingTeamName = inn1.batting_team_id === match.team_a?.id ? match.team_a?.name : match.team_b?.name;
+                const bowlingTeamName = inn1.bowling_team_id === match.team_a?.id ? match.team_a?.name : match.team_b?.name;
+                return (
+                  <div className="mt-2 space-y-2">
+                    <p className="text-xs text-[#a3a3a3]">
+                      <strong className="text-white">{battingTeamName}</strong> scored <strong className="text-[#c799ff]">{inn1.total_runs}/{inn1.total_wickets}</strong> in <strong className="text-white">{inn1.overs_played}</strong> overs.
+                    </p>
+                    <div className="bg-[#000]/30 rounded-xl p-3 inline-block mt-2">
+                      <p className="text-xs text-[#fbbf24] font-bold">
+                        Target: {inn1.total_runs + 1} runs
+                      </p>
+                      <p className="text-[10px] text-[#a3a3a3] mt-0.5">
+                        {bowlingTeamName} needs {inn1.total_runs + 1} runs to win.
+                      </p>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
             <button
-              onClick={() => setShowBowlerSheet(true)}
-              className="w-full bg-[#f59e0b] text-black font-bold py-2 rounded-xl text-xs"
+              onClick={handleStartSecondInnings}
+              className="w-full bg-[#a855f7] hover:bg-[#c799ff] text-black font-bold py-3.5 rounded-xl text-sm transition-colors shadow-[0_4px_16px_rgba(168,85,247,0.3)]"
             >
-              Assign Bowler
+              Start Second Innings 🏏
             </button>
           </div>
         )}
 
-        {/* Batsmen & Bowler Stat Cards */}
-        <section className="grid grid-cols-2 gap-3">
-          {/* Batsmen Stats */}
-          <div className="bg-[#111] rounded-2xl p-4 border border-[#222] space-y-3">
-            <span className="text-[9px] font-bold text-[#565555] tracking-widest uppercase block">Batsmen</span>
-            <div className="space-y-2">
-              {striker ? (
-                <div className="flex justify-between items-center bg-[#1a1a1a] rounded-lg p-2 border border-[#a855f7]/20">
-                  <span className="text-xs font-bold text-white truncate max-w-[70px]">🏏 {striker.name.split(' ')[0]}</span>
-                  <span className="text-xs font-black text-[#c799ff]">{striker.runs}({striker.balls})</span>
-                </div>
-              ) : (
-                <div className="text-[10px] text-[#565555] py-2 text-center">No Striker</div>
-              )}
-              {nonStriker ? (
-                <div className="flex justify-between items-center bg-[#141414] rounded-lg p-2">
-                  <span className="text-xs font-bold text-[#a3a3a3] truncate max-w-[70px]">{nonStriker.name.split(' ')[0]}</span>
-                  <span className="text-xs font-bold text-[#888]">{nonStriker.runs}({nonStriker.balls})</span>
-                </div>
-              ) : (
-                <div className="text-[10px] text-[#565555] py-2 text-center">No Non-Striker</div>
-              )}
+        {/* Match Completed Card */}
+        {match?.match?.status === 'completed' && (
+          <div className="bg-gradient-to-br from-[#3d2c0a] to-[#111] border border-[#fbbf24]/30 rounded-2xl p-6 text-center space-y-4 my-4 animate-fadeIn">
+            <div className="w-12 h-12 rounded-full bg-[#fbbf24]/20 flex items-center justify-center mx-auto text-[#fbbf24]">
+              <Trophy size={24} />
             </div>
-          </div>
-
-          {/* Bowler Stats */}
-          <div className="bg-[#111] rounded-2xl p-4 border border-[#222] space-y-3 flex flex-col justify-between">
             <div>
-              <span className="text-[9px] font-bold text-[#565555] tracking-widest uppercase block mb-3">Bowler</span>
-              {activeBowler ? (
+              <h3 className="text-base font-black text-white">Match Completed</h3>
+              <p className="text-sm font-bold text-[#fbbf24] mt-2">
+                {getMatchResultString()}
+              </p>
+              {(() => {
+                const inn1 = match.innings?.find((i: any) => i.innings_number === 1);
+                const inn2 = match.innings?.find((i: any) => i.innings_number === 2);
+                if (!inn1 || !inn2) return null;
+                const teamAName = match.team_a?.name || "Team A";
+                const teamBName = match.team_b?.name || "Team B";
+                
+                const inn1BatTeam = inn1.batting_team_id === match.team_a?.id ? teamAName : teamBName;
+                const inn2BatTeam = inn2.batting_team_id === match.team_a?.id ? teamAName : teamBName;
+                
+                return (
+                  <div className="text-[10px] text-[#a3a3a3] space-y-1 mt-3">
+                    <p>{inn1BatTeam}: {inn1.total_runs}/{inn1.total_wickets} ({inn1.overs_played} Ov)</p>
+                    <p>{inn2BatTeam}: {inn2.total_runs}/{inn2.total_wickets} ({inn2.overs_played} Ov)</p>
+                  </div>
+                );
+              })()}
+            </div>
+            <button
+              onClick={() => navigate(`/match/${matchId}/summary`, { state: { team1: match?.team_a, team2: match?.team_b } })}
+              className="w-full bg-[#fbbf24] hover:bg-[#fcd34d] text-black font-bold py-3.5 rounded-xl text-sm transition-colors shadow-[0_4px_16px_rgba(251,191,36,0.3)]"
+            >
+              View Match Summary 🏆
+            </button>
+          </div>
+        )}
+
+        {/* Live Scoring View */}
+        {match?.match?.status === 'playing' && (
+          <>
+            {/* Openers / Active Batsmen Setup Trigger */}
+            {(!striker || !nonStriker) && (
+              <div className="bg-[#1a1a1a] border border-[#a855f7]/30 rounded-2xl p-4 flex flex-col gap-3 items-center text-center">
+                <Swords className="text-[#c799ff]" size={24} />
                 <div>
-                  <span className="text-sm font-bold text-white block truncate">{activeBowler.name}</span>
-                  <span className="text-[10px] font-bold text-[#a3a3a3] block mt-0.5">Overs: {activeBowler.overs}</span>
+                  <h4 className="text-xs font-bold text-white">Select Opening Batsmen</h4>
+                  <p className="text-[10px] text-[#a3a3a3] mt-0.5">Assign batsman at strike and non-striker to start.</p>
                 </div>
-              ) : (
-                <span className="text-xs text-[#565555]">No Bowler assigned</span>
-              )}
-            </div>
-            {activeBowler && (
-              <div className="text-right border-t border-[#222] pt-2">
-                <span className="text-sm font-black text-[#f87171]">{activeBowler.wickets} <span className="text-[9px] text-[#565555]">WKTS</span></span>
-                <span className="text-sm font-black text-[#fff] ml-2">{activeBowler.runs} <span className="text-[9px] text-[#565555]">RUNS</span></span>
+                <div className="flex gap-2 w-full">
+                  {!striker && (
+                    <button
+                      onClick={() => { setSelectingRole('striker'); setShowBatsmanSheet(true); }}
+                      className="flex-1 bg-[#a855f7] text-black font-bold py-2 rounded-xl text-xs"
+                    >
+                      Set Striker
+                    </button>
+                  )}
+                  {!nonStriker && (
+                    <button
+                      onClick={() => { setSelectingRole('nonStriker'); setShowBatsmanSheet(true); }}
+                      className="flex-1 bg-[#242424] text-white font-bold py-2 rounded-xl text-xs hover:bg-[#333]"
+                    >
+                      Set Non-Striker
+                    </button>
+                  )}
+                </div>
               </div>
             )}
-          </div>
-        </section>
 
-        {/* This Over Deliveries View */}
-        <section className="bg-[#111] rounded-2xl p-4 border border-[#222]">
-          <span className="text-[9px] font-bold text-[#565555] tracking-widest uppercase block mb-3">THIS OVER</span>
-          <div className="flex gap-2 overflow-x-auto no-scrollbar py-1">
-            {thisOver.map((entry, idx) => (
-              <div
-                key={idx}
-                className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0 ${ballColor(entry)}`}
-              >
-                {ballLabel(entry)}
+            {/* Bowler Setup Trigger */}
+            {!activeBowler && (
+              <div className="bg-[#1a1a1a] border border-[#f59e0b]/30 rounded-2xl p-4 flex flex-col gap-3 items-center text-center">
+                <Shield className="text-[#fbbf24]" size={24} />
+                <div>
+                  <h4 className="text-xs font-bold text-white">Set Bowler for Over {overs + 1}</h4>
+                  <p className="text-[10px] text-[#a3a3a3] mt-0.5">Assign bowler to begin scoring deliveries.</p>
+                </div>
+                <button
+                  onClick={() => setShowBowlerSheet(true)}
+                  className="w-full bg-[#f59e0b] text-black font-bold py-2 rounded-xl text-xs"
+                >
+                  Assign Bowler
+                </button>
               </div>
-            ))}
-            {thisOver.length === 0 && (
-              <span className="text-xs text-[#565555] py-1">Deliveries will show up here</span>
             )}
-          </div>
-        </section>
 
-        {/* Scoring Input Pad */}
-        <section className="bg-[#111] rounded-2xl p-4 border border-[#222] space-y-4">
-          {/* Extras Toggle Trow */}
-          <div className="flex justify-between gap-1.5">
-            {(['wide', 'noball', 'bye', 'legbye'] as const).map((mode) => (
-              <button
-                key={mode}
-                onClick={() => setExtraMode(extraMode === mode ? null : mode)}
-                className={`flex-1 py-2 rounded-xl text-[10px] font-bold tracking-wider uppercase border transition-all ${
-                  extraMode === mode
-                    ? 'bg-[#fbbf24] border-[#fbbf24] text-black shadow-[0_0_12px_rgba(251,191,36,0.2)]'
-                    : 'bg-[#1a1a1a] border-transparent text-[#a3a3a3] hover:bg-[#222]'
-                }`}
-              >
-                {mode === 'noball' ? 'NO BALL' : mode}
-              </button>
-            ))}
-          </div>
+            {/* Batsmen & Bowler Stat Cards */}
+            <section className="grid grid-cols-2 gap-3">
+              {/* Batsmen Stats */}
+              <div className="bg-[#111] rounded-2xl p-4 border border-[#222] space-y-3">
+                <span className="text-[9px] font-bold text-[#565555] tracking-widest uppercase block">Batsmen</span>
+                <div className="space-y-2">
+                  {striker ? (
+                    <div className="flex justify-between items-center bg-[#1a1a1a] rounded-lg p-2 border border-[#a855f7]/20">
+                      <span className="text-xs font-bold text-white truncate max-w-[70px]">🏏 {striker.name.split(' ')[0]}</span>
+                      <span className="text-xs font-black text-[#c799ff]">{striker.runs}({striker.balls})</span>
+                    </div>
+                  ) : (
+                    <div className="text-[10px] text-[#565555] py-2 text-center">No Striker</div>
+                  )}
+                  {nonStriker ? (
+                    <div className="flex justify-between items-center bg-[#141414] rounded-lg p-2">
+                      <span className="text-xs font-bold text-[#a3a3a3] truncate max-w-[70px]">{nonStriker.name.split(' ')[0]}</span>
+                      <span className="text-xs font-bold text-[#888]">{nonStriker.runs}({nonStriker.balls})</span>
+                    </div>
+                  ) : (
+                    <div className="text-[10px] text-[#565555] py-2 text-center">No Non-Striker</div>
+                  )}
+                </div>
+              </div>
 
-          {/* Runs Buttons Grid */}
-          <div className="grid grid-cols-4 gap-2">
-            {[0, 1, 2, 3, 4, 6].map((run) => (
-              <button
-                key={run}
-                onClick={() => scoreDelivery(run, extraMode)}
-                disabled={scoringBall || !striker || !activeBowler}
-                className={`py-4 rounded-2xl font-black text-lg transition-all flex flex-col items-center justify-center border ${
-                  run === 4
-                    ? 'bg-[#22c55e]/10 border-[#22c55e]/30 text-[#22c55e] hover:bg-[#22c55e]/20'
-                    : run === 6
-                    ? 'bg-[#6366f1]/10 border-[#6366f1]/30 text-[#6366f1] hover:bg-[#6366f1]/20'
-                    : 'bg-[#1a1a1a] border-[#242424] text-white hover:bg-[#222]'
-                } disabled:opacity-30 disabled:cursor-not-allowed`}
-              >
-                {run}
-                <span className="text-[8px] font-bold text-[#565555] tracking-widest mt-0.5">RUNS</span>
-              </button>
-            ))}
+              {/* Bowler Stats */}
+              <div className="bg-[#111] rounded-2xl p-4 border border-[#222] space-y-3 flex flex-col justify-between">
+                <div>
+                  <span className="text-[9px] font-bold text-[#565555] tracking-widest uppercase block mb-3">Bowler</span>
+                  {activeBowler ? (
+                    <div>
+                      <span className="text-sm font-bold text-white block truncate">{activeBowler.name}</span>
+                      <span className="text-[10px] font-bold text-[#a3a3a3] block mt-0.5">Overs: {activeBowler.overs}</span>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-[#565555]">No Bowler assigned</span>
+                  )}
+                </div>
+                {activeBowler && (
+                  <div className="text-right border-t border-[#222] pt-2">
+                    <span className="text-sm font-black text-[#f87171]">{activeBowler.wickets} <span className="text-[9px] text-[#565555]">WKTS</span></span>
+                    <span className="text-sm font-black text-[#fff] ml-2">{activeBowler.runs} <span className="text-[9px] text-[#565555]">RUNS</span></span>
+                  </div>
+                )}
+              </div>
+            </section>
 
-            {/* Wicket Elector */}
-            <button
-              onClick={() => setShowWicketSheet(true)}
-              disabled={scoringBall || !striker || !activeBowler}
-              className="col-span-2 py-4 rounded-2xl bg-[#ef4444]/10 border border-[#ef4444]/30 text-[#ef4444] font-black text-sm flex items-center justify-center hover:bg-[#ef4444]/20 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-            >
-              WICKET 🔴
-            </button>
-          </div>
-        </section>
+            {/* This Over Deliveries View */}
+            <section className="bg-[#111] rounded-2xl p-4 border border-[#222]">
+              <span className="text-[9px] font-bold text-[#565555] tracking-widest uppercase block mb-3">THIS OVER</span>
+              <div className="flex gap-2 overflow-x-auto no-scrollbar py-1">
+                {thisOver.map((entry, idx) => (
+                  <div
+                    key={idx}
+                    className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0 ${ballColor(entry)}`}
+                  >
+                    {ballLabel(entry)}
+                  </div>
+                ))}
+                {thisOver.length === 0 && (
+                  <span className="text-xs text-[#565555] py-1">Deliveries will show up here</span>
+                )}
+              </div>
+            </section>
+
+            {/* Scoring Input Pad */}
+            <section className="bg-[#111] rounded-2xl p-4 border border-[#222] space-y-4">
+              {/* Extras Toggle Trow */}
+              <div className="flex justify-between gap-1.5">
+                {(['wide', 'noball', 'bye', 'legbye'] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    onClick={() => setExtraMode(extraMode === mode ? null : mode)}
+                    className={`flex-1 py-2 rounded-xl text-[10px] font-bold tracking-wider uppercase border transition-all ${
+                      extraMode === mode
+                        ? 'bg-[#fbbf24] border-[#fbbf24] text-black shadow-[0_0_12px_rgba(251,191,36,0.2)]'
+                        : 'bg-[#1a1a1a] border-transparent text-[#a3a3a3] hover:bg-[#222]'
+                    }`}
+                  >
+                    {mode === 'noball' ? 'NO BALL' : mode}
+                  </button>
+                ))}
+              </div>
+
+              {/* Runs Buttons Grid */}
+              <div className="grid grid-cols-4 gap-2">
+                {[0, 1, 2, 3, 4, 6].map((run) => (
+                  <button
+                    key={run}
+                    onClick={() => scoreDelivery(run, extraMode)}
+                    disabled={scoringBall || !striker || !activeBowler}
+                    className={`py-4 rounded-2xl font-black text-lg transition-all flex flex-col items-center justify-center border ${
+                      run === 4
+                        ? 'bg-[#22c55e]/10 border-[#22c55e]/30 text-[#22c55e] hover:bg-[#22c55e]/20'
+                        : run === 6
+                        ? 'bg-[#6366f1]/10 border-[#6366f1]/30 text-[#6366f1] hover:bg-[#6366f1]/20'
+                        : 'bg-[#1a1a1a] border-[#242424] text-white hover:bg-[#222]'
+                    } disabled:opacity-30 disabled:cursor-not-allowed`}
+                  >
+                    {run}
+                    <span className="text-[8px] font-bold text-[#565555] tracking-widest mt-0.5">RUNS</span>
+                  </button>
+                ))}
+
+                {/* Wicket Elector */}
+                <button
+                  onClick={() => setShowWicketSheet(true)}
+                  disabled={scoringBall || !striker || !activeBowler}
+                  className="col-span-2 py-4 rounded-2xl bg-[#ef4444]/10 border border-[#ef4444]/30 text-[#ef4444] font-black text-sm flex items-center justify-center hover:bg-[#ef4444]/20 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  WICKET 🔴
+                </button>
+              </div>
+            </section>
+          </>
+        )}
 
         {/* Quick Routing Links */}
         <div className="flex gap-2">
@@ -803,7 +968,7 @@ export default function LiveScoring() {
           </button>
           <button
             onClick={() => setShowBowlerSheet(true)}
-            disabled={!inningsId}
+            disabled={!inningsId || match?.match?.status !== 'playing'}
             className="flex-1 bg-[#1a1a1a] rounded-xl py-3 text-[10px] font-bold text-[#a3a3a3] text-center hover:bg-[#222] transition-colors disabled:opacity-50"
           >
             CHANGE BOWLER

@@ -45,13 +45,67 @@ export default function PlayingXI() {
   const location = useLocation();
   const { matchId, teamId } = useParams<{ matchId: string; teamId: string }>();
 
-  const { team1, team2, tossWinner, decision, currentTeamIndex } = (location.state as {
+  const { team1: stateTeam1, team2: stateTeam2, tossWinner: stateTossWinner, decision: stateDecision, currentTeamIndex: stateCurrentTeamIndex } = (location.state as {
     team1: TeamData | null;
     team2: TeamData | null;
     tossWinner: TeamData | null;
     decision: string | null;
     currentTeamIndex: number;
   }) || { team1: null, team2: null, tossWinner: null, decision: null, currentTeamIndex: 0 };
+
+  const [team1, setTeam1] = useState<TeamData | null>(stateTeam1);
+  const [team2, setTeam2] = useState<TeamData | null>(stateTeam2);
+  const [tossWinner, setTossWinner] = useState<TeamData | null>(stateTossWinner);
+  const [decision, setDecision] = useState<string | null>(stateDecision);
+  const [currentTeamIndex, setCurrentTeamIndex] = useState(stateCurrentTeamIndex);
+
+  useEffect(() => {
+    async function fetchMatchDetails() {
+      if (!matchId) return;
+      if (stateTeam1 && stateTeam2) {
+        if (teamId === stateTeam2.id) {
+          setCurrentTeamIndex(1);
+        } else {
+          setCurrentTeamIndex(0);
+        }
+        return;
+      }
+      
+      try {
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${API_URL}/api/matches/${matchId}`, {
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        });
+        if (!res.ok) throw new Error('Failed to fetch match details');
+        const data = await res.json();
+        const matchState = data.data;
+        
+        const t1 = matchState.team_a;
+        const t2 = matchState.team_b;
+        
+        setTeam1(t1);
+        setTeam2(t2);
+        
+        const twId = matchState.match?.toss_winner_id;
+        if (twId) {
+          setTossWinner(twId === t1.id ? t1 : t2);
+        }
+        setDecision(matchState.match?.toss_election || null);
+        
+        if (teamId === t2.id) {
+          setCurrentTeamIndex(1);
+        } else {
+          setCurrentTeamIndex(0);
+        }
+      } catch (err: any) {
+        console.error('Error fetching match details:', err);
+      }
+    }
+    fetchMatchDetails();
+  }, [matchId, teamId, stateTeam1, stateTeam2]);
 
   const currentTeam = currentTeamIndex === 0 ? team1 : team2;
 
