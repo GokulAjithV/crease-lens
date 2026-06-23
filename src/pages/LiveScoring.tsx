@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowLeft, RotateCcw, MoreVertical, X, CheckCircle, ChevronRight, Loader2, AlertCircle, Swords, Shield, User } from 'lucide-react';
+import { ArrowLeft, RotateCcw, MoreVertical, X, CheckCircle, ChevronRight, Loader2, AlertCircle, Swords, Shield, User, Trophy } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 interface TeamData {
