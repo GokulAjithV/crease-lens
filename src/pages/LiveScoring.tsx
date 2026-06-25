@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowLeft, RotateCcw, MoreVertical, X, CheckCircle, ChevronRight, Loader2, AlertCircle, Swords, Shield, User, Trophy } from 'lucide-react';
+import { ArrowLeft, RotateCcw, MoreVertical, X, CheckCircle, ChevronRight, Loader2, AlertCircle, Swords, Shield, User, Trophy, Share2 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 interface TeamData {
@@ -49,6 +49,7 @@ export default function LiveScoring() {
   const [match, setMatch] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [copied, setCopied] = useState(false);
   
   // Scoring Core State
   const [inningsId, setInningsId] = useState<string | null>(null);
@@ -89,6 +90,21 @@ export default function LiveScoring() {
     { id: 'retired', label: 'Retired Out', icon: '🚪' },
     { id: 'obstructing', label: 'Obstructing', icon: '🚫' },
   ];
+
+  const handleShareMatch = () => {
+    const shareUrl = `${window.location.origin}/match/${matchId}/scorecard`;
+    if (navigator.share) {
+      navigator.share({
+        title: 'Crease Live Scorecard',
+        text: `Watch the live scorecard for ${match?.team_a?.name || 'Team A'} vs ${match?.team_b?.name || 'Team B'} live on Crease!`,
+        url: shareUrl,
+      }).catch((err) => console.error(err));
+    } else {
+      navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   // Load match state on mount
   useEffect(() => {
@@ -668,9 +684,19 @@ export default function LiveScoring() {
         <div className="flex items-center gap-2">
           <span className="text-[9px] font-bold text-[#10b981] animate-pulse">● LIVE SCORING</span>
         </div>
-        <button className="text-[#a3a3a3] hover:text-[#ffffff] transition-colors">
-          <MoreVertical size={20} />
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleShareMatch}
+            className="text-[#a3a3a3] hover:text-[#ffffff] transition-colors flex items-center gap-1.5"
+            title="Share Live Scorecard Link"
+          >
+            <Share2 size={18} />
+            {copied && <span className="text-[10px] text-[#10b981] font-bold">Copied!</span>}
+          </button>
+          <button className="text-[#a3a3a3] hover:text-[#ffffff] transition-colors">
+            <MoreVertical size={20} />
+          </button>
+        </div>
       </header>
 
       {error && (
