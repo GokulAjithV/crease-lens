@@ -72,6 +72,7 @@ export default function LiveScoring() {
   const [showBowlerSheet, setShowBowlerSheet] = useState(false);
   const [showBatsmanSheet, setShowBatsmanSheet] = useState(false);
   const [showWicketSheet, setShowWicketSheet] = useState(false);
+  const [showInningsBreakModal, setShowInningsBreakModal] = useState(false);
   
   const [selectingRole, setSelectingRole] = useState<'striker' | 'nonStriker' | 'replacement' | null>(null);
   const [selectedWicketType, setSelectedWicketType] = useState<string | null>(null);
@@ -108,7 +109,7 @@ export default function LiveScoring() {
 
   // Load match state on mount
   useEffect(() => {
-    fetchMatchState();
+    fetchMatchState(true);
     
     // Clear match setup state from sessionStorage as setup is complete
     sessionStorage.removeItem('setup_matchType');
@@ -122,10 +123,10 @@ export default function LiveScoring() {
     sessionStorage.removeItem('setup_scheduledAt');
   }, [matchId]);
 
-  const fetchMatchState = async () => {
+  const fetchMatchState = async (showLoading = false) => {
     if (!matchId) return;
     try {
-      setLoading(true);
+      if (showLoading) setLoading(true);
       setError('');
       const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
       const token = localStorage.getItem('token');
@@ -142,6 +143,19 @@ export default function LiveScoring() {
 
       const data = await res.json();
       const matchState = data.data;
+
+      // Auto-redirect if match is completed
+      if (matchState.match?.status === 'completed') {
+        setLoading(false);
+        navigate(`/match/${matchId}/summary`, { state: { team1: matchState.team_a, team2: matchState.team_b } });
+        return;
+      }
+
+      // Show Innings Break Modal if Innings 1 ends
+      if (matchState.match?.status === 'innings_break') {
+        setShowInningsBreakModal(true);
+      }
+
       setMatch(matchState);
 
       // Resolve innings
@@ -216,7 +230,7 @@ export default function LiveScoring() {
       setInningsNumber(1);
       
       // Reload match state
-      fetchMatchState();
+      fetchMatchState(true);
     } catch (err: any) {
       setError(err.message || 'Failed to start innings');
     }
@@ -557,6 +571,8 @@ export default function LiveScoring() {
       }
       
       setExtraMode(null);
+      // Background refresh to check match completion or innings break
+      await fetchMatchState(false);
     } catch (err: any) {
       setError(err.message || 'Failed to record ball');
     } finally {
@@ -612,7 +628,7 @@ export default function LiveScoring() {
       setThisOver([]);
       
       // Reload match state
-      await fetchMatchState();
+      await fetchMatchState(true);
     } catch (err: any) {
       setError(err.message || 'Failed to start second innings');
       setLoading(false);
@@ -1144,6 +1160,59 @@ export default function LiveScoring() {
                   </button>
                 ))
               )}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Innings Break Alert Dialog */}
+      {showInningsBreakModal && (
+        <>
+          <div onClick={() => setShowInningsBreakModal(false)} className="fixed inset-0 bg-[#000]/75 z-[100] backdrop-blur-md" />
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-[340px] bg-[#1a1a1a] border border-[#a855f7]/30 rounded-3xl p-6 z-[101] animate-zoomIn text-center space-y-4 shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
+            <div className="w-14 h-14 rounded-full bg-[#a855f7]/10 flex items-center justify-center mx-auto text-[#a855f7]">
+              <Swords size={28} />
+            </div>
+            <div>
+              <h3 className="text-lg font-black text-white">Innings 1 Completed</h3>
+              {(() => {
+                const inn1 = match?.innings?.find((i: any) => i.innings_number === 1);
+                if (!inn1) return null;
+                const battingTeamName = inn1.batting_team_id === match?.team_a?.id ? match?.team_a?.name : match?.team_b?.name;
+                const bowlingTeamName = inn1.bowling_team_id === match?.team_a?.id ? match?.team_a?.name : match?.team_b?.name;
+                return (
+                  <div className="mt-2 space-y-3">
+                    <p className="text-xs text-[#a3a3a3]">
+                      <strong className="text-white">{battingTeamName}</strong> scored <strong className="text-[#c799ff]">{inn1.total_runs}/{inn1.total_wickets}</strong> in <strong className="text-white">{inn1.overs_played}</strong> overs.
+                    </p>
+                    <div className="bg-[#000]/40 rounded-2xl p-3 inline-block w-full border border-[#222]">
+                      <p className="text-xs text-[#fbbf24] font-black tracking-wide uppercase">
+                        Target: {inn1.total_runs + 1} runs
+                      </p>
+                      <p className="text-[10px] text-[#a3a3a3] mt-0.5">
+                        {bowlingTeamName} needs {inn1.total_runs + 1} runs in {match?.match?.total_overs} overs.
+                      </p>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowInningsBreakModal(false)}
+                className="flex-1 bg-[#242424] hover:bg-[#333] text-white font-bold py-3 rounded-xl text-xs transition-colors border border-[#333]"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => {
+                  setShowInningsBreakModal(false);
+                  handleStartSecondInnings();
+                }}
+                className="flex-1 bg-[#a855f7] hover:bg-[#c799ff] text-black font-black py-3 rounded-xl text-xs transition-colors shadow-[0_4px_16px_rgba(168,85,247,0.3)]"
+              >
+                Start Innings 2 🏏
+              </button>
             </div>
           </div>
         </>
