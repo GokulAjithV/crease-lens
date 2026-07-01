@@ -148,7 +148,7 @@ export default function LiveScoring() {
       if (matchState.match?.status === 'completed') {
         setLoading(false);
         navigate(`/match/${matchId}/summary`, { state: { team1: matchState.team_a, team2: matchState.team_b } });
-        return;
+        return matchState;
       }
 
       // Show Innings Break Modal if Innings 1 ends
@@ -178,6 +178,7 @@ export default function LiveScoring() {
         // Sync active batsman scores if deliveries exist
         await syncActiveBatsmen(latestInnings.id, matchState);
       }
+      return matchState;
     } catch (err: any) {
       setError(err.message || 'Error loading match state');
     } finally {
@@ -554,15 +555,18 @@ export default function LiveScoring() {
           setNonStriker(striker);
         }
 
-        // 2. Wicket management
-        if (wicketType) {
+        // Fetch the updated match state from the DB to see if the innings or match is completed
+        const updatedState = await fetchMatchState(false);
+
+        // 2. Wicket management (only if match is still playing)
+        if (wicketType && updatedState?.match?.status === 'playing') {
           setStriker(null); // Striker is out, trigger replacement selection
           setSelectingRole('replacement');
           setShowBatsmanSheet(true);
         }
 
-        // 3. Over Completed: trigger bowler selector and swap strike (since new over starts from opposite end)
-        if (isLegal && newBalls === 0 && !wicketType) {
+        // 3. Over Completed: trigger bowler selector and swap strike (since new over starts from opposite end, only if match is still playing)
+        if (isLegal && newBalls === 0 && !wicketType && updatedState?.match?.status === 'playing') {
           setStriker(nonStriker);
           setNonStriker(striker);
           setActiveBowler(null); // Require new bowler
@@ -571,8 +575,6 @@ export default function LiveScoring() {
       }
       
       setExtraMode(null);
-      // Background refresh to check match completion or innings break
-      await fetchMatchState(false);
     } catch (err: any) {
       setError(err.message || 'Failed to record ball');
     } finally {
