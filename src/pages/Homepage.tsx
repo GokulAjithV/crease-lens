@@ -9,7 +9,7 @@ const menuItems = [
   { label: 'Start New Match', desc: 'Set up teams & begin scoring', icon: Zap, path: '/match/select-team', color: '#fbbf24' },
   { label: 'Manage Teams', desc: 'Create & edit team rosters', icon: Users, path: '/team/add', color: '#3b82f6' },
   { label: 'Live Scorecard', desc: 'View detailed match scorecard', icon: Radio, path: '/match/1/scorecard', color: '#ef4444' },
-  { label: 'Match Summary', desc: 'Post-match report & analysis', icon: ClipboardList, path: '/match/1/summary', color: '#f59e0b' },
+  { label: 'Match Summaries', desc: 'Browse all played matches & reports', icon: ClipboardList, path: '/matches', color: '#f59e0b' },
 ];
 
 export default function Homepage() {
@@ -54,9 +54,9 @@ export default function Homepage() {
         const data = await res.json();
         const matchesList = data.data || [];
         
-        // Find latest match created by user that is not completed or abandoned
+        // Find latest match created by user that is not completed or abandoned, and has teams configured
         const resumeMatch = matchesList.find(
-          (m: any) => m.created_by === user?.id && !['completed', 'abandoned'].includes(m.status)
+          (m: any) => m.created_by === user?.id && !['completed', 'abandoned'].includes(m.status) && m.team_a_id && m.team_b_id
         );
         
         if (resumeMatch) {

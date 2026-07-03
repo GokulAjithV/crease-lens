@@ -15,6 +15,9 @@ export default function MatchSummary() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+  const [messages, setMessages] = useState<{ role: 'user' | 'model'; content: string }[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
 
   useEffect(() => {
     const fetchSummary = async () => {
@@ -80,6 +83,53 @@ See full live ball-by-ball scorecard & wagon wheel on Crease:
       }
     } catch (err) {
       // User cancelled share
+    }
+  };
+
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chatInput.trim() || chatLoading) return;
+    
+    const userQuestion = chatInput.trim();
+    setChatInput('');
+    
+    const newMessages = [...messages, { role: 'user' as const, content: userQuestion }];
+    setMessages(newMessages);
+    setChatLoading(true);
+    
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const token = localStorage.getItem('token');
+      
+      const res = await fetch(`${API_URL}/api/matches/${matchId}/analyze`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          question: userQuestion,
+          history: messages
+        }),
+      });
+      
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json.detail || 'Failed to analyze question');
+      }
+      
+      setMessages([...newMessages, { role: 'model' as const, content: json.data.answer }]);
+    } catch (err: any) {
+      setMessages([...newMessages, { role: 'model' as const, content: `Error: ${err.message || 'Failed to load response.'}` }]);
+    } finally {
+      setChatLoading(false);
+      
+      setTimeout(() => {
+        const chatFeed = document.getElementById('chat-messages-feed');
+        if (chatFeed) {
+          chatFeed.scrollTop = chatFeed.scrollHeight;
+        }
+      }, 50);
     }
   };
 
@@ -443,6 +493,72 @@ See full live ball-by-ball scorecard & wagon wheel on Crease:
                     );
                   })}
                 </div>
+              </div>
+
+              {/* Chat Console */}
+              <div className="bg-[#1a1a1a] rounded-2xl p-4 space-y-3 flex flex-col border border-[#2a2a2a]">
+                <div className="flex items-center gap-1.5 border-b border-[#242424] pb-2">
+                  <Sparkles size={13} className="text-[#a855f7]" />
+                  <span className="text-[10px] font-bold text-[#a3a3a3] tracking-widest uppercase">ASK CREASE AI</span>
+                </div>
+                
+                {/* Message Feed */}
+                <div 
+                  id="chat-messages-feed"
+                  className="max-h-[220px] overflow-y-auto space-y-3 pr-1 scrollbar-thin scrollbar-thumb-zinc-800"
+                >
+                  {messages.length === 0 && (
+                    <div className="text-center py-6 text-[10px] text-[#565555]">
+                      Ask anything! Try: "Who bowled the most dot balls?" or "Break down the wickets in Innings 1."
+                    </div>
+                  )}
+                  {messages.map((msg, idx) => (
+                    <div 
+                      key={idx} 
+                      className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
+                    >
+                      <div 
+                        className={`max-w-[85%] rounded-xl px-3 py-2 text-xs leading-relaxed ${
+                          msg.role === 'user' 
+                            ? 'bg-[#a855f7] text-[#000000] font-semibold rounded-br-none' 
+                            : 'bg-[#111] text-[#e5e5e5] rounded-bl-none border border-[#242424] whitespace-pre-wrap'
+                        }`}
+                        dangerouslySetInnerHTML={msg.role === 'model' ? {
+                          __html: msg.content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        } : undefined}
+                      >
+                        {msg.role === 'user' ? msg.content : undefined}
+                      </div>
+                    </div>
+                  ))}
+                  {chatLoading && (
+                    <div className="flex items-center gap-2 text-xs text-[#a3a3a3]">
+                      <div className="w-1.5 h-1.5 bg-[#a855f7] rounded-full animate-bounce"></div>
+                      <div className="w-1.5 h-1.5 bg-[#a855f7] rounded-full animate-bounce [animation-delay:0.2s]"></div>
+                      <div className="w-1.5 h-1.5 bg-[#a855f7] rounded-full animate-bounce [animation-delay:0.4s]"></div>
+                      <span className="text-[10px] text-[#565555] font-bold tracking-wider uppercase ml-1">Analyzing...</span>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Input form */}
+                <form onSubmit={handleSendMessage} className="flex gap-2 border-t border-[#242424] pt-3">
+                  <input
+                    type="text"
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    placeholder="Ask about runs, wickets, matchups..."
+                    disabled={chatLoading}
+                    className="flex-1 bg-[#111] border border-[#242424] rounded-xl px-3 py-2.5 text-xs text-white placeholder-[#565555] outline-none focus:border-[#a855f7]/40 transition-colors disabled:opacity-50"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!chatInput.trim() || chatLoading}
+                    className="bg-[#a855f7] hover:bg-[#c799ff] text-black font-bold px-4 rounded-xl text-xs transition-colors flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    Send
+                  </button>
+                </form>
               </div>
             </section>
           )}
