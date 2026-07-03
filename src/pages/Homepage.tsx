@@ -18,8 +18,64 @@ export default function Homepage() {
   
   const [liveMatches, setLiveMatches] = useState<any[]>([]);
   const [loadingLive, setLoadingLive] = useState(true);
+  const [topPerformers, setTopPerformers] = useState<any[]>([]);
+  const [loadingPerformers, setLoadingPerformers] = useState(true);
+  const [recentBattles, setRecentBattles] = useState<any[]>([]);
+  const [loadingBattles, setLoadingBattles] = useState(true);
+  
+  const [aiInsight, setAiInsight] = useState<string>('');
+  const [insightLoading, setInsightLoading] = useState(true);
+  const [insightMatchId, setInsightMatchId] = useState<string | null>(null);
+  const [insightLabel, setInsightLabel] = useState<string>('MATCH PREVIEW');
 
   useEffect(() => {
+    async function fetchAiInsight(liveId: string | null) {
+      try {
+        setInsightLoading(true);
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+        
+        let targetId = liveId;
+        let isLiveMatch = true;
+
+        if (!targetId) {
+          const res = await fetch(`${API_URL}/api/matches?limit=1`);
+          if (res.ok) {
+            const json = await res.json();
+            const lastMatch = json.data?.[0];
+            if (lastMatch) {
+              targetId = lastMatch.id;
+              isLiveMatch = false;
+            }
+          }
+        }
+
+        if (!targetId) {
+          setAiInsight('No matches recorded yet. Start scoring to get AI-powered insights!');
+          setInsightLabel('MATCH PREVIEW');
+          setInsightMatchId(null);
+          return;
+        }
+
+        setInsightMatchId(targetId);
+        setInsightLabel(isLiveMatch ? 'LIVE ANALYSIS' : 'MATCH RECAP');
+
+        const summaryRes = await fetch(`${API_URL}/api/matches/${targetId}/summary`);
+        if (summaryRes.ok) {
+          const summaryJson = await summaryRes.json();
+          if (summaryJson.data && summaryJson.data.ai_insights) {
+            setAiInsight(summaryJson.data.ai_insights);
+          } else {
+            setAiInsight('Insight analysis pending telemetry update...');
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch AI insights', err);
+        setAiInsight('Unable to load real-time AI insights.');
+      } finally {
+        setInsightLoading(false);
+      }
+    }
+
     async function fetchLiveMatches() {
       try {
         setLoadingLive(true);
@@ -27,17 +83,60 @@ export default function Homepage() {
         const res = await fetch(`${API_URL}/api/matches/live`);
         if (res.ok) {
           const data = await res.json();
-          if (data && data.data) {
-            setLiveMatches(data.data);
+          const liveList = data.data || [];
+          setLiveMatches(liveList);
+          
+          if (liveList.length > 0) {
+            fetchAiInsight(liveList[0].id);
+          } else {
+            fetchAiInsight(null);
           }
+        } else {
+          fetchAiInsight(null);
         }
       } catch (err) {
         console.error('Failed to fetch live matches', err);
+        fetchAiInsight(null);
       } finally {
         setLoadingLive(false);
       }
     }
+
+    async function fetchTopPerformers() {
+      try {
+        setLoadingPerformers(true);
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+        const res = await fetch(`${API_URL}/api/leaderboard?category=overall&period=all_time&limit=5`);
+        if (res.ok) {
+          const json = await res.json();
+          setTopPerformers(json.data || []);
+        }
+      } catch (err) {
+        console.error('Failed to fetch top performers', err);
+      } finally {
+        setLoadingPerformers(false);
+      }
+    }
+
+    async function fetchRecentBattles() {
+      try {
+        setLoadingBattles(true);
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+        const res = await fetch(`${API_URL}/api/matches/completed?limit=3`);
+        if (res.ok) {
+          const json = await res.json();
+          setRecentBattles(json.data || []);
+        }
+      } catch (err) {
+        console.error('Failed to fetch recent battles', err);
+      } finally {
+        setLoadingBattles(false);
+      }
+    }
+
     fetchLiveMatches();
+    fetchTopPerformers();
+    fetchRecentBattles();
   }, []);
 
   const handleResumeScoring = async () => {
@@ -384,47 +483,46 @@ export default function Homepage() {
           </div>
         </section>
 
-        {/* Weekly MVPs */}
+        {/* All-Time Top Performers */}
         <section>
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-bold tracking-widest uppercase">WEEKLY MVPS</h3>
+            <h3 className="text-sm font-bold tracking-widest uppercase">ALL TIME TOP PERFORMERS</h3>
             <button onClick={() => navigate('/rankings')} className="text-[#a855f7] text-xs font-bold tracking-widest uppercase">VIEW ALL</button>
           </div>
-          <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-            <div className="min-w-[100px] bg-[#161616] border border-[#2d1b4e] rounded-2xl p-4 flex flex-col items-center relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-2 h-2 bg-[#4af8e3] rounded-bl-lg"></div>
-              <div className="w-12 h-12 rounded-full bg-[#a855f7] flex items-center justify-center mb-3">
-                <span className="text-lg font-bold text-[#000000]">VK</span>
-              </div>
-              <span className="font-bold text-xs mb-1">V. Kohli</span>
-              <div className="flex items-center gap-1 text-[10px]">
-                <span className="text-[#a855f7] font-bold">482 pts</span>
-                <span className="text-[#4af8e3] font-bold text-[8px]">↑2</span>
-              </div>
+          {loadingPerformers ? (
+            <div className="flex justify-center py-4">
+              <Loader2 className="text-[#a855f7] animate-spin" size={16} />
             </div>
-            
-            <div className="min-w-[100px] bg-[#161616] rounded-2xl p-4 flex flex-col items-center">
-              <div className="w-12 h-12 rounded-full bg-[#f59e0b] flex items-center justify-center mb-3">
-                <span className="text-lg font-bold text-[#000000]">RS</span>
-              </div>
-              <span className="font-bold text-xs mb-1">R. Sharma</span>
-              <div className="flex items-center gap-1 text-[10px]">
-                <span className="text-[#a3a3a3] font-bold">410 pts</span>
-                <span className="text-[#ef4444] font-bold text-[8px]">↓1</span>
-              </div>
+          ) : topPerformers.length === 0 ? (
+            <div className="text-[10px] text-[#565555] py-2">No performers stats yet.</div>
+          ) : (
+            <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+              {topPerformers.map((player, idx) => {
+                const initials = player.name ? player.name.split(' ').map((w: any) => w[0]).join('').toUpperCase() : '??';
+                return (
+                  <div 
+                    key={player.id || idx} 
+                    onClick={() => navigate('/rankings')}
+                    className="min-w-[100px] bg-[#161616] border border-[#2d1b4e]/30 rounded-2xl p-4 flex flex-col items-center relative overflow-hidden cursor-pointer hover:border-[#a855f7]/30 transition-all"
+                  >
+                    {player.rank === 1 && (
+                      <div className="absolute top-0 right-0 w-2.5 h-2.5 bg-[#f59e0b] rounded-bl-md"></div>
+                    )}
+                    <div 
+                      className="w-12 h-12 rounded-full flex items-center justify-center mb-3 text-[#ffffff] text-sm font-black"
+                      style={{ backgroundColor: player.avatar_color || '#a855f7' }}
+                    >
+                      {initials}
+                    </div>
+                    <span className="font-bold text-xs mb-1 truncate max-w-full text-center">{player.name.split(' ')[0]}</span>
+                    <div className="flex items-center gap-1 text-[10px]">
+                      <span className="text-[#c799ff] font-bold">{player.rating} pts</span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-            
-            <div className="min-w-[100px] bg-[#161616] rounded-2xl p-4 flex flex-col items-center">
-              <div className="w-12 h-12 rounded-full bg-[#10b981] flex items-center justify-center mb-3">
-                <span className="text-lg font-bold text-[#000000]">HP</span>
-              </div>
-              <span className="font-bold text-xs mb-1">H. Pandya</span>
-              <div className="flex items-center gap-1 text-[10px]">
-                <span className="text-[#a3a3a3] font-bold">385 pts</span>
-                <span className="text-[#565555] font-bold text-[8px]">-</span>
-              </div>
-            </div>
-          </div>
+          )}
         </section>
 
         {/* AI Insight Teaser */}
@@ -440,19 +538,33 @@ export default function Homepage() {
               <Sparkles size={120} />
             </div>
             
-            <p className="text-[13px] text-[#e5e2e1] leading-relaxed italic relative z-10 m-0 mb-4 font-sans">
-              "RCB's middle order looks vulnerable against spin. Recommending bringing on early slow bowlers in the next match."
-            </p>
-            
-            <div className="flex justify-between items-center relative z-10 border-t border-[#2d1b4e] pt-3 mt-1">
-              <div className="bg-[#1a1a1a] px-2 py-1 rounded border border-[#2d1b4e]">
-                <span className="text-[9px] text-[#a3a3a3] font-bold tracking-widest uppercase">MATCH PREVIEW</span>
+            {insightLoading ? (
+              <div className="flex items-center gap-2 py-4 relative z-10">
+                <Loader2 className="text-[#a855f7] animate-spin" size={16} />
+                <span className="text-xs text-[#a3a3a3]">Analyzing telemetry...</span>
               </div>
-              <button className="text-[#c799ff] text-[10px] font-bold tracking-widest uppercase flex items-center gap-1 hover:text-[#d8b4fe] transition-colors">
-                FULL REPORT
-                <Sparkles size={10} />
-              </button>
-            </div>
+            ) : (
+              <>
+                <p className="text-[13px] text-[#e5e2e1] leading-relaxed italic relative z-10 m-0 mb-4 font-sans whitespace-pre-line">
+                  {aiInsight}
+                </p>
+                
+                <div className="flex justify-between items-center relative z-10 border-t border-[#2d1b4e] pt-3 mt-1">
+                  <div className="bg-[#1a1a1a] px-2 py-1 rounded border border-[#2d1b4e]">
+                    <span className="text-[9px] text-[#a3a3a3] font-bold tracking-widest uppercase">{insightLabel}</span>
+                  </div>
+                  {insightMatchId && (
+                    <button 
+                      onClick={() => navigate(`/match/${insightMatchId}/summary`)}
+                      className="text-[#c799ff] text-[10px] font-bold tracking-widest uppercase flex items-center gap-1 hover:text-[#d8b4fe] transition-colors"
+                    >
+                      FULL REPORT
+                      <Sparkles size={10} />
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         </section>
 
@@ -461,44 +573,97 @@ export default function Homepage() {
           <div className="mb-4">
             <h3 className="text-sm font-bold tracking-widest uppercase">RECENT BATTLES</h3>
           </div>
-          <div className="bg-[#161616] rounded-2xl p-4">
-            <div className="flex justify-between items-center mb-5">
-              <div className="bg-[#2d1b4e] px-3 py-1 rounded-full">
-                <span className="text-[#c799ff] text-[9px] font-bold tracking-widest uppercase">TOURNAMENT FINAL</span>
-              </div>
-              <Trophy size={14} className="text-[#f59e0b] fill-[#f59e0b]" />
+          {loadingBattles ? (
+            <div className="flex justify-center py-6 bg-[#161616] rounded-2xl">
+              <Loader2 className="text-[#a855f7] animate-spin" size={18} />
             </div>
-            
-            <div className="flex justify-between items-center mb-3">
-              <div className="flex items-center gap-3">
-                <div className="w-6 h-6 rounded-full bg-[#242424] flex items-center justify-center">
-                  <span className="text-[8px] font-bold text-[#a3a3a3]">MI</span>
-                </div>
-                <span className="font-bold text-sm">Mumbai I.</span>
-              </div>
-              <div className="text-right">
-                <span className="font-bold text-sm text-[#ffffff] mr-1">165/8</span>
-                <span className="text-[10px] text-[#a3a3a3] font-bold">(20.0)</span>
-              </div>
+          ) : recentBattles.length === 0 ? (
+            <div className="bg-[#161616] rounded-2xl p-6 text-center text-xs text-[#565555]">
+              No battles completed yet.
             </div>
-            
-            <div className="flex justify-between items-center mb-5">
-              <div className="flex items-center gap-3">
-                <div className="w-6 h-6 rounded-full bg-[#242424] flex items-center justify-center">
-                  <span className="text-[8px] font-bold text-[#a3a3a3]">DC</span>
-                </div>
-                <span className="font-bold text-sm text-[#a3a3a3]">Delhi C.</span>
-              </div>
-              <div className="text-right">
-                <span className="font-bold text-sm text-[#a3a3a3] mr-1">152/9</span>
-                <span className="text-[10px] text-[#a3a3a3] font-bold">(20.0)</span>
-              </div>
+          ) : (
+            <div className="space-y-4">
+              {recentBattles.map((battle: any) => {
+                const m = battle.match;
+                const scores = battle.scores || {};
+                
+                const teamA = m.team_a || {};
+                const teamB = m.team_b || {};
+                
+                const scoreA = scores[m.team_a_id] || { runs: 0, wickets: 0, overs: 0.0 };
+                const scoreB = scores[m.team_b_id] || { runs: 0, wickets: 0, overs: 0.0 };
+                
+                const initialsA = teamA.name ? teamA.name.split(' ').map((w: any) => w[0]).join('').toUpperCase() : 'A';
+                const initialsB = teamB.name ? teamB.name.split(' ').map((w: any) => w[0]).join('').toUpperCase() : 'B';
+                
+                const winnerName = m.winner_id === teamA.id ? teamA.name : teamB.name;
+                
+                return (
+                  <div 
+                    key={m.id} 
+                    onClick={() => navigate(`/match/${m.id}/summary`)}
+                    className="bg-[#161616] rounded-2xl p-4 border border-[#242424] hover:border-[#a855f7]/30 transition-all cursor-pointer space-y-3 relative overflow-hidden"
+                  >
+                    <div className="flex justify-between items-center">
+                      <div className="bg-[#2d1b4e] px-3 py-1 rounded-full">
+                        <span className="text-[#c799ff] text-[8px] font-black tracking-widest uppercase">{m.match_type || 'T20'}</span>
+                      </div>
+                      <Trophy size={14} className="text-[#f59e0b] fill-[#f59e0b]" />
+                    </div>
+                    
+                    {/* Team A Details */}
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-3">
+                        <div 
+                          className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-black text-white"
+                          style={{ backgroundColor: teamA.avatar_color || '#a855f7' }}
+                        >
+                          {initialsA}
+                        </div>
+                        <span className={`font-bold text-sm ${m.winner_id === teamB.id ? 'text-[#a3a3a3]' : 'text-[#ffffff]'}`}>
+                          {teamA.name}
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <span className={`font-bold text-sm mr-1 ${m.winner_id === teamB.id ? 'text-[#a3a3a3]' : 'text-[#ffffff]'}`}>
+                          {scoreA.runs}/{scoreA.wickets}
+                        </span>
+                        <span className="text-[10px] text-[#565555] font-bold">({scoreA.overs.toFixed(1)})</span>
+                      </div>
+                    </div>
+                    
+                    {/* Team B Details */}
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-3">
+                        <div 
+                          className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-black text-white"
+                          style={{ backgroundColor: teamB.avatar_color || '#22c55e' }}
+                        >
+                          {initialsB}
+                        </div>
+                        <span className={`font-bold text-sm ${m.winner_id === teamA.id ? 'text-[#a3a3a3]' : 'text-[#ffffff]'}`}>
+                          {teamB.name}
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <span className={`font-bold text-sm mr-1 ${m.winner_id === teamA.id ? 'text-[#a3a3a3]' : 'text-[#ffffff]'}`}>
+                          {scoreB.runs}/{scoreB.wickets}
+                        </span>
+                        <span className="text-[10px] text-[#565555] font-bold">({scoreB.overs.toFixed(1)})</span>
+                      </div>
+                    </div>
+                    
+                    {/* Margin statement */}
+                    <div className="text-left border-t border-[#242424] pt-2 mt-1">
+                      <span className="text-[#565555] text-[10px] font-bold uppercase tracking-wider">
+                        {winnerName} won by {m.win_margin} {m.win_type}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-            
-            <div className="text-left">
-              <span className="text-[#565555] text-xs font-semibold">MI won by 13 runs</span>
-            </div>
-          </div>
+          )}
         </section>
 
       </main>

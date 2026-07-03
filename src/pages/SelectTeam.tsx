@@ -290,14 +290,18 @@ export default function SelectTeam() {
             <div className="space-y-2">
               {filteredYours.map((team) => {
                 const isSelected = team.id === selectedTeam1 || team.id === selectedTeam2;
+                const disabled = (selectingFor === 1 && team.id === selectedTeam2) || (selectingFor === 2 && team.id === selectedTeam1);
                 return (
                   <button
                     key={team.id}
+                    disabled={disabled}
                     onClick={() => handleSelectTeam(team.id)}
                     className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all text-left ${
                       isSelected
                         ? 'bg-[#2d1b4e] border border-[#a855f7]'
-                        : 'bg-[#1a1a1a] border border-transparent hover:bg-[#222]'
+                        : disabled
+                          ? 'bg-[#121212] opacity-40 cursor-not-allowed border border-transparent'
+                          : 'bg-[#1a1a1a] border border-transparent hover:bg-[#222]'
                     }`}
                   >
                     <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: team.color }}>
@@ -329,14 +333,18 @@ export default function SelectTeam() {
             <div className="space-y-2">
               {filteredOpponents.map((team) => {
                 const isSelected = team.id === selectedTeam1 || team.id === selectedTeam2;
+                const disabled = (selectingFor === 1 && team.id === selectedTeam2) || (selectingFor === 2 && team.id === selectedTeam1);
                 return (
                   <button
                     key={team.id}
+                    disabled={disabled}
                     onClick={() => handleSelectTeam(team.id)}
                     className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all text-left ${
                       isSelected
                         ? 'bg-[#2d1b4e] border border-[#a855f7]'
-                        : 'bg-[#1a1a1a] border border-transparent hover:bg-[#222]'
+                        : disabled
+                          ? 'bg-[#121212] opacity-40 cursor-not-allowed border border-transparent'
+                          : 'bg-[#1a1a1a] border border-transparent hover:bg-[#222]'
                     }`}
                   >
                     <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: team.color }}>
