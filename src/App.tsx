@@ -17,6 +17,7 @@ import LiveScoring from './pages/LiveScoring'
 import LiveScorecard from './pages/LiveScorecard'
 import MatchSummary from './pages/MatchSummary'
 import PlayerProfile from './pages/PlayerProfile'
+import MatchHistory from './pages/MatchHistory'
 import Login from './pages/Login'
 import Register from './pages/Register'
 
@@ -32,6 +33,7 @@ export default function App() {
         {/* Core */}
         <Route path="/home" element={<Homepage />} />
         <Route path="/rankings" element={<Rankings />} />
+        <Route path="/matches" element={<MatchHistory />} />
 
         {/* Match Setup Flow */}
         <Route path="/match/new" element={<StartMatch />} />

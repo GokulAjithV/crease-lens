@@ -589,6 +589,46 @@ export default function LiveScoring() {
     setSelectedWicketType(null);
   };
 
+  const handleManualEndInnings = async () => {
+    if (!inningsId) return;
+    
+    const confirmEnd = window.confirm(
+      inningsNumber === 1 
+        ? "Are you sure you want to end Innings 1? This will transition to the Innings Break."
+        : "Are you sure you want to end Innings 2? This will complete the match and generate the summary."
+    );
+    if (!confirmEnd) return;
+    
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const token = localStorage.getItem('token');
+      
+      const res = await fetch(`${API_URL}/api/matches/innings/${inningsId}/end`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        }
+      });
+      
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json.detail || 'Failed to end innings');
+      }
+      
+      const status = json.data?.status;
+      if (status === 'innings_break') {
+        await fetchMatchState(true);
+      } else if (status === 'completed') {
+        navigate(`/match/${matchId}/summary`);
+      } else {
+        navigate(`/match/${matchId}/summary`);
+      }
+    } catch (err: any) {
+      alert(`Error: ${err.message || 'Failed to end innings.'}`);
+    }
+  };
+
   const handleStartSecondInnings = async () => {
     if (!matchId || !match) return;
     try {
@@ -1018,8 +1058,9 @@ export default function LiveScoring() {
             CHANGE BOWLER
           </button>
           <button
-            onClick={() => navigate(`/match/${matchId}/summary`)}
-            className="flex-1 bg-[#2d1b4e] rounded-xl py-3 text-[10px] font-bold text-[#c799ff] text-center hover:bg-[#3d2c60] transition-colors"
+            onClick={handleManualEndInnings}
+            disabled={!inningsId}
+            className="flex-1 bg-[#2d1b4e] rounded-xl py-3 text-[10px] font-bold text-[#c799ff] text-center hover:bg-[#3d2c60] transition-colors disabled:opacity-50"
           >
             END INNINGS
           </button>
