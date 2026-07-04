@@ -7,7 +7,7 @@ const menuItems = [
   { label: 'Player Profile', desc: 'View stats & match history', icon: User, path: '/player/1', color: '#a855f7' },
   { label: 'Rankings', desc: 'Weekly MVPs & leaderboard', icon: BarChart3, path: '/rankings', color: '#22c55e' },
   { label: 'Start New Match', desc: 'Set up teams & begin scoring', icon: Zap, path: '/match/select-team', color: '#fbbf24' },
-  { label: 'Manage Teams', desc: 'Create & edit team rosters', icon: Users, path: '/team/add', color: '#3b82f6' },
+  { label: 'Manage Teams', desc: 'Create & edit team rosters', icon: Users, path: '/teams', color: '#3b82f6' },
   { label: 'Live Scorecard', desc: 'View detailed match scorecard', icon: Radio, path: '/match/1/scorecard', color: '#ef4444' },
   { label: 'Match Summaries', desc: 'Browse all played matches & reports', icon: ClipboardList, path: '/matches', color: '#f59e0b' },
 ];
@@ -254,21 +254,27 @@ export default function Homepage() {
 
             {/* Drawer Items */}
             <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
-              {menuItems.map((item) => (
-                <button
-                  key={item.label}
-                  onClick={() => { setMenuOpen(false); navigate(item.path); }}
-                  className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-[#1a1a1a] active:scale-[0.98] transition-all text-left"
-                >
-                  <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: item.color + '15' }}>
-                    <item.icon size={16} style={{ color: item.color }} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <span className="text-[13px] font-bold text-[#ffffff] block">{item.label}</span>
-                    <span className="text-[9px] text-[#565555]">{item.desc}</span>
-                  </div>
-                </button>
-              ))}
+              {menuItems.map((item) => {
+                const targetPath = item.path === '/player/1' && user?.id
+                  ? `/player/${user.id}`
+                  : item.path;
+
+                return (
+                  <button
+                    key={item.label}
+                    onClick={() => { setMenuOpen(false); navigate(targetPath); }}
+                    className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-[#1a1a1a] active:scale-[0.98] transition-all text-left cursor-pointer"
+                  >
+                    <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: item.color + '15' }}>
+                      <item.icon size={16} style={{ color: item.color }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-[13px] font-bold text-[#ffffff] block">{item.label}</span>
+                      <span className="text-[9px] text-[#565555]">{item.desc}</span>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
 
             {/* Drawer Footer */}

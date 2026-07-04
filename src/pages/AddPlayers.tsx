@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowLeft, Search, Link2, Phone, BookUser, ChevronRight, UserPlus, Loader2, Check } from 'lucide-react';
+import { ArrowLeft, Search, Link2, Phone, BookUser, ChevronRight, UserPlus, Loader2, Check, X } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 interface Player {
@@ -74,6 +74,33 @@ export default function AddPlayers() {
 
     fetchTeamSquad();
   }, [teamId]);
+
+  const handleRemovePlayer = async (playerId: string) => {
+    if (!teamId) return;
+    if (!window.confirm('Are you sure you want to remove this player from the team squad?')) return;
+
+    try {
+      setError('');
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const token = localStorage.getItem('token');
+
+      const response = await fetch(`${API_URL}/api/teams/${teamId}/players/${playerId}`, {
+        method: 'DELETE',
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+
+      if (!response.ok) {
+        const errJson = await response.json();
+        throw new Error(errJson.detail || 'Failed to remove player');
+      }
+
+      setPlayers((prev) => prev.filter((p) => p.id !== playerId));
+    } catch (err: any) {
+      setError(err.message || 'Something went wrong while removing player');
+    }
+  };
 
   const generateInviteLink = async (): Promise<string> => {
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -193,7 +220,15 @@ export default function AddPlayers() {
             )}
 
             {!loading && players.map((p) => (
-              <div key={p.id} className="flex flex-col items-center gap-1.5 flex-shrink-0">
+              <div key={p.id} className="flex flex-col items-center gap-1.5 flex-shrink-0 relative">
+                {/* Deletion Overlay Close Badge */}
+                <button
+                  onClick={() => handleRemovePlayer(p.id)}
+                  className="absolute -top-1 -right-1 bg-[#ef4444] hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center shadow-md z-10 transition-colors border border-black cursor-pointer"
+                  title="Remove player"
+                >
+                  <X size={10} strokeWidth={3} />
+                </button>
                 <div
                   className="w-14 h-14 rounded-full flex items-center justify-center shadow-inner"
                   style={{ backgroundColor: p.color }}
