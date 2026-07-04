@@ -6,6 +6,8 @@ import Rankings from './pages/Rankings'
 import StartMatch from './pages/StartMatch'
 import SelectTeam from './pages/SelectTeam'
 import AddTeam from './pages/AddTeam'
+import ManageTeams from './pages/ManageTeams'
+import EditTeam from './pages/EditTeam'
 import AddPlayers from './pages/AddPlayers'
 import AddViaPhone from './pages/AddViaPhone'
 import AddFromContacts from './pages/AddFromContacts'
@@ -45,7 +47,9 @@ export default function App() {
         <Route path="/match/:matchId/summary" element={<MatchSummary />} />
 
         {/* Team Management Flow */}
+        <Route path="/teams" element={<ManageTeams />} />
         <Route path="/team/add" element={<AddTeam />} />
+        <Route path="/team/:teamId/edit" element={<EditTeam />} />
         <Route path="/team/:teamId/players" element={<AddPlayers />} />
         <Route path="/join/:token" element={<JoinTeam />} />
         <Route path="/team/:teamId/players/phone" element={<AddViaPhone />} />

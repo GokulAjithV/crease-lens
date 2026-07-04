@@ -49,7 +49,7 @@ export default function SelectTeam() {
           }
         }
 
-        const response = await fetch(`${API_URL}/api/teams?scope=all`, {
+        const response = await fetch(`${API_URL}/api/teams?scope=all&active_only=true`, {
           headers: {
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },

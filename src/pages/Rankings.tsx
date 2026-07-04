@@ -174,7 +174,11 @@ export default function Rankings() {
           ) : (
             <div className="space-y-4">
               {players.map((player) => (
-                <div key={player.rank} className="flex items-center justify-between px-1">
+                <div 
+                  key={player.rank} 
+                  onClick={() => navigate(`/player/${player.id}`)}
+                  className="flex items-center justify-between px-2 py-1.5 rounded-xl hover:bg-[#161616] active:scale-[0.99] transition-all cursor-pointer"
+                >
                   
                   <div className="flex items-center gap-4">
                     <span className="text-base font-bold text-[#ffffff] w-4 text-center">{player.rank}</span>
