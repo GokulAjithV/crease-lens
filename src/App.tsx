@@ -22,6 +22,7 @@ import PlayerProfile from './pages/PlayerProfile'
 import MatchHistory from './pages/MatchHistory'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import ScoutingHub from './pages/ScoutingHub'
 
 export default function App() {
   return (
@@ -58,6 +59,7 @@ export default function App() {
 
         {/* Player */}
         <Route path="/player/:playerId" element={<PlayerProfile />} />
+        <Route path="/scouting" element={<ScoutingHub />} />
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/login" replace />} />
