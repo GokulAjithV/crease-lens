@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Play, Plus, RotateCcw, Share2, Trophy, Sparkles, Menu, X, User, BarChart3, Users, Zap, ClipboardList, Radio, LogOut, Loader2 } from 'lucide-react';
+import { Play, Plus, RotateCcw, Share2, Trophy, Sparkles, Menu, X, User, BarChart3, Users, Zap, ClipboardList, Radio, LogOut, Loader2, Target } from 'lucide-react';
 import BottomNav from '../components/layout/BottomNav';
 
 const menuItems = [
@@ -10,6 +10,7 @@ const menuItems = [
   { label: 'Manage Teams', desc: 'Create & edit team rosters', icon: Users, path: '/teams', color: '#3b82f6' },
   { label: 'Live Scorecard', desc: 'View detailed match scorecard', icon: Radio, path: '/match/1/scorecard', color: '#ef4444' },
   { label: 'Match Summaries', desc: 'Browse all played matches & reports', icon: ClipboardList, path: '/matches', color: '#f59e0b' },
+  { label: 'Scouting & Strategy', desc: 'Pre-match & live opponent scouting', icon: Target, path: '/scouting', color: '#fb7185' },
 ];
 
 export default function Homepage() {
