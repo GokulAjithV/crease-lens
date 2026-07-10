@@ -11,57 +11,7 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleGoogleCredentialResponse = async (response: any) => {
-    setError('');
-    setLoading(true);
-    try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-      const res = await fetch(`${API_URL}/api/auth/google`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id_token: response.credential }),
-      });
-      
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.detail || 'Google authentication failed');
-      }
-      
-      localStorage.setItem('token', data.access_token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      navigate('/home');
-    } catch (err: any) {
-      setError(err.message || 'Google SSO login failed');
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  useEffect(() => {
-    const script = document.createElement('script');
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    script.defer = true;
-    document.body.appendChild(script);
-
-    script.onload = () => {
-      if ((window as any).google) {
-        (window as any).google.accounts.id.initialize({
-          client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || '1074747715426-30s0c0n80kml0aeq59d99723l5j50hcb.apps.googleusercontent.com',
-          callback: handleGoogleCredentialResponse,
-        });
-        
-        (window as any).google.accounts.id.renderButton(
-          document.getElementById('google-signin-btn-container'),
-          { theme: 'filled_black', size: 'large', width: 342, shape: 'pill' }
-        );
-      }
-    };
-
-    return () => {
-      document.body.removeChild(script);
-    };
-  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -188,23 +138,15 @@ export default function Login() {
           {loading ? 'Signing In...' : 'Sign In'}
         </button>
 
-        {/* Divider */}
-        <div className="flex items-center gap-4 my-7">
-          <div className="flex-1 h-px bg-[#2a2a2a]"></div>
-          <span className="text-[10px] text-[#565555] tracking-wider uppercase">or continue with</span>
-          <div className="flex-1 h-px bg-[#2a2a2a]"></div>
-        </div>
-
-        {/* Google SSO Container */}
-        <div className="mb-8 flex justify-center">
-          <div id="google-signin-btn-container" className="w-full"></div>
-        </div>
-
-        {/* Footer */}
-        <div className="mt-auto pb-10 text-center">
-          <span className="text-xs text-[#a3a3a3]">Don't have an account? </span>
-          <button type="button" onClick={() => navigate('/register')} className="text-xs font-bold text-[#a855f7] hover:text-[#c799ff] transition-colors">
-            Sign Up
+        {/* Footer Sign Up Promotion */}
+        <div className="mt-8 mb-10 text-center bg-[#111] border border-[#242424] rounded-2xl p-4">
+          <p className="text-xs text-[#a3a3a3] mb-3.5">New to Crease?</p>
+          <button
+            type="button"
+            onClick={() => navigate('/register')}
+            className="w-full py-3 rounded-xl border border-[#a855f7]/30 hover:border-[#a855f7] text-[#c799ff] text-xs font-bold transition-all hover:bg-[#a855f7]/5 active:scale-[0.98] cursor-pointer"
+          >
+            Create New Account
           </button>
         </div>
       </form>
