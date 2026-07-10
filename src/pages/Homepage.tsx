@@ -242,7 +242,7 @@ export default function Homepage() {
                 </div>
                 <div>
                   <span className="text-sm font-black text-[#ffffff] block">{displayName}</span>
-                  <span className="text-[9px] text-[#565555]">Stadium Noir Player</span>
+                  <span className="text-[9px] text-[#565555]">Crease Player</span>
                 </div>
               </div>
               <button
