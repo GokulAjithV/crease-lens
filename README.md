@@ -1,7 +1,3 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
-
 # CREASE Lens 🏏
 
 CREASE Lens is the frontend client for the **CREASE** grassroots cricket scoring platform. It is a mobile-first Single Page Application (SPA) built using React, TypeScript, and Vite, designed to provide a premium, dynamic, and responsive interface for both scorer and fan roles.
