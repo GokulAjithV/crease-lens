@@ -75,6 +75,14 @@ export default function AddPlayers() {
     fetchTeamSquad();
   }, [teamId]);
 
+  const handleBack = () => {
+    if (window.history.length <= 1) {
+      navigate('/teams');
+    } else {
+      navigate(-1);
+    }
+  };
+
   const handleRemovePlayer = async (playerId: string) => {
     if (!teamId) return;
     if (!window.confirm('Are you sure you want to remove this player from the team squad?')) return;
@@ -176,7 +184,7 @@ export default function AddPlayers() {
       {/* Header */}
       <header className="sticky top-0 z-50 flex items-center justify-between px-4 py-4 bg-[#000000]">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate(-1)} className="text-[#a3a3a3] hover:text-[#ffffff] transition-colors">
+          <button onClick={handleBack} className="text-[#a3a3a3] hover:text-[#ffffff] transition-colors">
             <ArrowLeft size={20} />
           </button>
           <div>
@@ -335,7 +343,7 @@ export default function AddPlayers() {
       {/* Footer */}
       <div className="fixed bottom-0 w-full max-w-[390px] bg-gradient-to-t from-[#000000] via-[#000000] to-transparent px-4 pt-6 pb-8 z-50">
         <button
-          onClick={() => navigate(-1)}
+          onClick={handleBack}
           className="w-full bg-[#a855f7] text-[#ffffff] py-4 rounded-2xl font-bold text-sm shadow-[0_4px_20px_rgba(168,85,247,0.35)] hover:bg-[#c799ff] active:scale-[0.98] transition-all"
         >
           Done

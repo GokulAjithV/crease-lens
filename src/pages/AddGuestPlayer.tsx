@@ -75,7 +75,7 @@ export default function AddGuestPlayer() {
 
       setSuccess(true);
       setTimeout(() => {
-        navigate(`/team/${teamId}/players`);
+        navigate(-1);
       }, 1500);
     } catch (err: any) {
       setError(err.message || 'Something went wrong. Please try again.');
