@@ -305,7 +305,7 @@ export default function LiveScoring() {
     const card = matchState.scorecard?.scorecard?.find((s: any) => s.innings_id === innId);
 
     if (lastBall.is_wicket) {
-      const dismissedId = lastBall.dismissed_id;
+      const dismissedId = lastBall.dismissed_id || lastBall.batsman_id;
       const survivorId = lastBall.batsman_id === dismissedId ? lastBall.non_striker_id : lastBall.batsman_id;
       
       const survivorPlayer = getSquadMemberFromState(survivorId);
