@@ -80,6 +80,7 @@ export default function LiveScoring() {
   // Extras configuration state
   const [extraMode, setExtraMode] = useState<'wide' | 'noball' | 'bye' | 'legbye' | null>(null);
   const [scoringBall, setScoringBall] = useState(false);
+  const [undoing, setUndoing] = useState(false);
 
   const wicketTypes = [
     { id: 'bowled', label: 'Bowled', icon: '🏏' },
@@ -582,6 +583,38 @@ export default function LiveScoring() {
     }
   };
 
+  const handleUndo = async () => {
+    if (!inningsId) return;
+    if (!window.confirm("Are you sure you want to undo the last delivery?")) return;
+    
+    try {
+      setUndoing(true);
+      setError('');
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const token = localStorage.getItem('token');
+      
+      const response = await fetch(`${API_URL}/api/matches/innings/${inningsId}/undo`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        }
+      });
+      
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.detail || 'Failed to undo ball');
+      }
+      
+      // Successfully undone! Refresh match state to sync everything perfectly!
+      await fetchMatchState(false);
+    } catch (err: any) {
+      setError(err.message || 'Failed to undo the last delivery');
+    } finally {
+      setUndoing(false);
+    }
+  };
+
   const handleConfirmWicket = () => {
     if (!selectedWicketType) return;
     scoreDelivery(0, null, selectedWicketType);
@@ -715,9 +748,16 @@ export default function LiveScoring() {
     );
   }
 
-  // Find remaining batsmen for batsman sheet
+  // Find players already dismissed in the current innings
+  const dismissedPlayerIds = new Set(
+    match?.deliveries
+      ?.filter((d: any) => d.innings_id === inningsId && d.is_wicket && d.dismissed_id)
+      ?.map((d: any) => d.dismissed_id) || []
+  );
+
+  // Find remaining batsmen for batsman sheet (excluding current batsmen and those already out)
   const availableBatsmen = (battingSquad || []).filter(
-    (p: any) => p.id !== striker?.id && p.id !== nonStriker?.id
+    (p: any) => p.id !== striker?.id && p.id !== nonStriker?.id && !dismissedPlayerIds.has(p.id)
   );
 
   // Find the last completed over in the current innings
@@ -1036,6 +1076,16 @@ export default function LiveScoring() {
                   className="col-span-2 py-4 rounded-2xl bg-[#ef4444]/10 border border-[#ef4444]/30 text-[#ef4444] font-black text-sm flex items-center justify-center hover:bg-[#ef4444]/20 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                   WICKET 🔴
+                </button>
+
+                {/* Undo Button */}
+                <button
+                  onClick={handleUndo}
+                  disabled={undoing || !inningsId}
+                  className="col-span-4 py-3.5 rounded-2xl bg-[#1c1c1e] border border-[#2c2c2e] hover:bg-[#2c2c2e] hover:border-[#fb7185]/30 text-[#fb7185] font-black text-xs flex items-center justify-center gap-1.5 transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  {undoing ? <Loader2 size={13} className="animate-spin text-[#fb7185]" /> : <RotateCcw size={13} className="text-[#fb7185]" />}
+                  UNDO LAST BALL ↩️
                 </button>
               </div>
             </section>
