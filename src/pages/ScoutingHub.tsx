@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Sparkles, Send, Loader2, Target, MapPin, Users, Brain, ShieldAlert, Copy, Check } from 'lucide-react';
+import { ArrowLeft, Sparkles, Send, Loader2, Target, MapPin, Brain, ShieldAlert, Copy, Check } from 'lucide-react';
 
 interface Message {
   role: 'user' | 'model';
@@ -19,6 +19,12 @@ export default function ScoutingHub() {
   const [loading, setLoading] = useState(false);
   const [fetchingConfig, setFetchingConfig] = useState(true);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+
+  // Predictions State
+  const [activeTab, setActiveTab] = useState<'chat' | 'predict'>('chat');
+  const [predicting, setPredicting] = useState(false);
+  const [predictionResult, setPredictionResult] = useState<any>(null);
+  const [predictionError, setPredictionError] = useState('');
 
   const handleCopy = (text: string, index: number) => {
     navigator.clipboard.writeText(text);
@@ -119,6 +125,49 @@ export default function ScoutingHub() {
     }
   };
 
+  const handlePredict = async () => {
+    if (!teamA || !teamB) {
+      setPredictionError('Please select both teams to run a prediction.');
+      return;
+    }
+    setPredicting(true);
+    setPredictionError('');
+    setPredictionResult(null);
+
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const token = localStorage.getItem('token');
+      const headers: any = {
+        'Content-Type': 'application/json'
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const res = await fetch(`${API_URL}/api/chat/predict`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          team_a_id: teamA,
+          team_b_id: teamB,
+          venue: venue || null
+        })
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.detail || 'Simulation engine failed.');
+      }
+
+      const data = await res.json();
+      setPredictionResult(data.data);
+    } catch (err: any) {
+      setPredictionError(err.message || 'Failed to simulate prediction.');
+    } finally {
+      setPredicting(false);
+    }
+  };
+
   const presets = [
     {
       title: 'Bowler Matchups',
@@ -159,6 +208,30 @@ export default function ScoutingHub() {
         </div>
         <div className="w-5"></div>
       </header>
+
+      {/* Tabs */}
+      <div className="flex border-b border-[#1a1a1a] bg-[#050505]">
+        <button
+          onClick={() => setActiveTab('chat')}
+          className={`flex-1 py-3 text-xs font-black tracking-widest uppercase transition-all border-b-2 cursor-pointer ${
+            activeTab === 'chat'
+              ? 'border-[#fb7185] text-[#fb7185] bg-[#fb7185]/5'
+              : 'border-transparent text-[#565555] hover:text-[#a3a3a3]'
+          }`}
+        >
+          Scout Chat
+        </button>
+        <button
+          onClick={() => setActiveTab('predict')}
+          className={`flex-1 py-3 text-xs font-black tracking-widest uppercase transition-all border-b-2 cursor-pointer ${
+            activeTab === 'predict'
+              ? 'border-[#fb7185] text-[#fb7185] bg-[#fb7185]/5'
+              : 'border-transparent text-[#565555] hover:text-[#a3a3a3]'
+          }`}
+        >
+          Match Predictor
+        </button>
+      </div>
 
       {/* RAG Context Selectors */}
       <section className="p-4 bg-[#0a0a0a] border-b border-[#1a1a1a] space-y-3.5">
@@ -215,120 +288,238 @@ export default function ScoutingHub() {
         </div>
       </section>
 
-      {/* Chat Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {chatHistory.length === 0 ? (
-          <div className="py-8 space-y-6">
-            {/* AI Welcome */}
-            <div className="text-center space-y-2">
-              <div className="w-12 h-12 bg-gradient-to-tr from-[#fb7185] to-[#a855f7] rounded-full flex items-center justify-center mx-auto shadow-[0_0_15px_rgba(251,113,133,0.3)]">
-                <Sparkles size={20} className="text-[#ffffff]" />
+      {/* Chat Tab View */}
+      {activeTab === 'chat' && (
+        <>
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {chatHistory.length === 0 ? (
+              <div className="py-8 space-y-6">
+                {/* AI Welcome */}
+                <div className="text-center space-y-2">
+                  <div className="w-12 h-12 bg-gradient-to-tr from-[#fb7185] to-[#a855f7] rounded-full flex items-center justify-center mx-auto shadow-[0_0_15px_rgba(251,113,133,0.3)]">
+                    <Sparkles size={20} className="text-[#ffffff]" />
+                  </div>
+                  <h3 className="text-sm font-black text-[#ffffff]">Crease Strategy Assistant</h3>
+                  <p className="text-xs text-[#a3a3a3] max-w-[280px] mx-auto leading-relaxed">
+                    Configure your matchup and venue above, then tap a preset or ask a question to generate a tactical report.
+                  </p>
+                </div>
+
+                {/* Presets Grid */}
+                <div className="grid grid-cols-2 gap-2.5">
+                  {presets.map((p) => (
+                    <button
+                      key={p.title}
+                      onClick={() => handleSend(p.prompt)}
+                      className="bg-[#111] hover:bg-[#161616] border border-[#242424] hover:border-[#fb7185]/30 p-3 rounded-2xl text-left flex flex-col justify-between h-32 active:scale-[0.98] transition-all cursor-pointer group"
+                    >
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: p.color + '15' }}>
+                        <p.icon size={15} style={{ color: p.color }} />
+                      </div>
+                      <div>
+                        <span className="text-[11px] font-black text-[#ffffff] block mb-0.5 group-hover:text-[#fb7185] transition-colors">{p.title}</span>
+                        <span className="text-[8px] text-[#565555] line-clamp-2 leading-tight">{p.prompt}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
               </div>
-              <h3 className="text-sm font-black text-[#ffffff]">Crease Strategy Assistant</h3>
+            ) : (
+              <div className="space-y-4">
+                {chatHistory.map((msg, index) => (
+                  <div
+                    key={index}
+                    className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
+                  >
+                    <span className="text-[8px] font-black text-[#565555] tracking-widest uppercase mb-1 px-1">
+                      {msg.role === 'user' ? 'COACH / CAPTAIN' : 'CREASE SCOUT'}
+                    </span>
+                    
+                    <div className="relative group/bubble max-w-[85%] w-full flex flex-col items-start">
+                      <div
+                        className={`w-full rounded-2xl px-4 py-3 text-xs leading-relaxed relative ${
+                          msg.role === 'user'
+                            ? 'bg-[#fb7185] text-black font-semibold'
+                            : 'bg-[#111] border border-[#242424] text-[#e5e5e5] whitespace-pre-wrap pr-8'
+                        }`}
+                      >
+                        {msg.content}
+                        
+                        {msg.role === 'model' && (
+                          <button
+                            onClick={() => handleCopy(msg.content, index)}
+                            className="absolute right-2 top-2 p-1 rounded-md text-[#565555] hover:text-[#ffffff] bg-[#161616]/80 hover:bg-[#222] border border-[#242424] transition-all cursor-pointer"
+                            title="Copy to clipboard"
+                          >
+                            {copiedIndex === index ? (
+                              <Check size={11} className="text-[#22c55e]" />
+                            ) : (
+                              <Copy size={11} />
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                
+                {loading && (
+                  <div className="flex flex-col items-start">
+                    <span className="text-[8px] font-black text-[#565555] tracking-widest uppercase mb-1 px-1">CREASE SCOUT</span>
+                    <div className="bg-[#111] border border-[#242424] rounded-2xl px-4 py-3.5 flex items-center gap-2">
+                      <Loader2 className="animate-spin text-[#fb7185]" size={14} />
+                      <span className="text-xs text-[#a3a3a3] font-bold">Scanning matchup telemetry...</span>
+                    </div>
+                  </div>
+                )}
+                
+                <div ref={chatEndRef} />
+              </div>
+            )}
+          </div>
+
+          <footer className="sticky bottom-0 z-40 bg-[#000000] p-4 border-t border-[#1a1a1a]">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSend();
+                }}
+                placeholder="Ask match-up questions..."
+                className="flex-1 bg-[#161616] border border-[#242424] rounded-2xl px-4 py-3 text-xs text-[#ffffff] focus:outline-none focus:border-[#fb7185] placeholder-[#565555] transition-colors"
+              />
+              <button
+                onClick={() => handleSend()}
+                disabled={loading || !query.trim()}
+                className="w-11 h-11 bg-gradient-to-tr from-[#fb7185] to-[#a855f7] text-white rounded-2xl flex items-center justify-center active:scale-[0.95] disabled:scale-100 disabled:opacity-40 transition-all cursor-pointer"
+              >
+                <Send size={15} />
+              </button>
+            </div>
+          </footer>
+        </>
+      )}
+
+      {/* Predictions Tab View */}
+      {activeTab === 'predict' && (
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-8 animate-fadeIn">
+          <div className="bg-[#111] border border-[#242424] rounded-2xl p-4 space-y-4">
+            <div className="text-center space-y-1">
+              <Brain size={24} className="text-[#fb7185] mx-auto animate-pulse" />
+              <h4 className="text-sm font-black text-[#ffffff]">AI Match Predictor</h4>
               <p className="text-xs text-[#a3a3a3] max-w-[280px] mx-auto leading-relaxed">
-                Configure your matchup and venue above, then tap a preset or ask a question to generate a tactical report.
+                Run a data-backed simulation between the selected rosters based on historical head-to-head metrics and venue conditions.
               </p>
             </div>
 
-            {/* Presets Grid */}
-            <div className="grid grid-cols-2 gap-2.5">
-              {presets.map((p) => (
-                <button
-                  key={p.title}
-                  onClick={() => handleSend(p.prompt)}
-                  className="bg-[#111] hover:bg-[#161616] border border-[#242424] hover:border-[#fb7185]/30 p-3 rounded-2xl text-left flex flex-col justify-between h-32 active:scale-[0.98] transition-all cursor-pointer group"
-                >
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: p.color + '15' }}>
-                    <p.icon size={15} style={{ color: p.color }} />
-                  </div>
-                  <div>
-                    <span className="text-[11px] font-black text-[#ffffff] block mb-0.5 group-hover:text-[#fb7185] transition-colors">{p.title}</span>
-                    <span className="text-[8px] text-[#565555] line-clamp-2 leading-tight">{p.prompt}</span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {chatHistory.map((msg, index) => (
-              <div
-                key={index}
-                className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
-              >
-                {/* Avatar Label */}
-                <span className="text-[8px] font-black text-[#565555] tracking-widest uppercase mb-1 px-1">
-                  {msg.role === 'user' ? 'COACH / CAPTAIN' : 'CREASE SCOUT'}
+            <button
+              onClick={handlePredict}
+              disabled={predicting || !teamA || !teamB}
+              className="w-full bg-gradient-to-tr from-[#fb7185] to-[#a855f7] hover:from-[#f43f5e] hover:to-[#9333ea] text-white font-black text-xs py-3.5 rounded-xl shadow-lg transition-all active:scale-[0.98] disabled:scale-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+            >
+              {predicting ? (
+                <span className="flex items-center justify-center gap-2">
+                  <Loader2 size={13} className="animate-spin text-white" />
+                  SIMULATING OUTCOME...
                 </span>
-                
-                {/* Chat Bubble Wrapper */}
-                <div className="relative group/bubble max-w-[85%] w-full flex flex-col items-start">
-                  <div
-                    className={`w-full rounded-2xl px-4 py-3 text-xs leading-relaxed relative ${
-                      msg.role === 'user'
-                        ? 'bg-[#fb7185] text-black font-semibold'
-                        : 'bg-[#111] border border-[#242424] text-[#e5e5e5] whitespace-pre-wrap pr-8'
-                    }`}
-                  >
-                    {msg.content}
-                    
-                    {/* Copy Button */}
-                    {msg.role === 'model' && (
-                      <button
-                        onClick={() => handleCopy(msg.content, index)}
-                        className="absolute right-2 top-2 p-1 rounded-md text-[#565555] hover:text-[#ffffff] bg-[#161616]/80 hover:bg-[#222] border border-[#242424] transition-all cursor-pointer"
-                        title="Copy to clipboard"
-                      >
-                        {copiedIndex === index ? (
-                          <Check size={11} className="text-[#22c55e]" />
-                        ) : (
-                          <Copy size={11} />
-                        )}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-            
-            {/* Loading Indicator */}
-            {loading && (
-              <div className="flex flex-col items-start">
-                <span className="text-[8px] font-black text-[#565555] tracking-widest uppercase mb-1 px-1">CREASE SCOUT</span>
-                <div className="bg-[#111] border border-[#242424] rounded-2xl px-4 py-3.5 flex items-center gap-2">
-                  <Loader2 className="animate-spin text-[#fb7185]" size={14} />
-                  <span className="text-xs text-[#a3a3a3] font-bold">Scanning matchup telemetry...</span>
-                </div>
+              ) : (
+                'SIMULATE MATCH OUTCOME 🚀'
+              )}
+            </button>
+
+            {predictionError && (
+              <div className="bg-[#ef4444]/10 border border-[#ef4444]/20 rounded-xl p-3 text-center text-xs text-[#ef4444] font-bold">
+                {predictionError}
               </div>
             )}
-            
-            <div ref={chatEndRef} />
           </div>
-        )}
-      </div>
 
-      {/* Input Message Form */}
-      <footer className="sticky bottom-0 z-40 bg-[#000000] p-4 border-t border-[#1a1a1a]">
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleSend();
-            }}
-            placeholder="Ask match-up questions..."
-            className="flex-1 bg-[#161616] border border-[#242424] rounded-2xl px-4 py-3 text-xs text-[#ffffff] focus:outline-none focus:border-[#fb7185] placeholder-[#565555] transition-colors"
-          />
-          <button
-            onClick={() => handleSend()}
-            disabled={loading || !query.trim()}
-            className="w-11 h-11 bg-gradient-to-tr from-[#fb7185] to-[#a855f7] text-white rounded-2xl flex items-center justify-center active:scale-[0.95] disabled:scale-100 disabled:opacity-40 transition-all cursor-pointer"
-          >
-            <Send size={15} />
-          </button>
+          {/* Prediction Output Results */}
+          {predictionResult && (
+            <div className="space-y-4 animate-slideUp">
+              {/* 1. Win Probability */}
+              <div className="bg-[#111] border border-[#242424] rounded-2xl p-4 space-y-3">
+                <span className="text-[9px] font-black text-[#565555] tracking-widest uppercase block">WIN PROBABILITY</span>
+                
+                {(() => {
+                  const probabilities = predictionResult.winner_probability || {};
+                  const teamAName = teams.find(t => t.id === teamA)?.name || 'Team A';
+                  const teamBName = teams.find(t => t.id === teamB)?.name || 'Team B';
+                  const probA = probabilities[teamAName] || probabilities['Team A'] || 50;
+                  const probB = probabilities[teamBName] || probabilities['Team B'] || 50;
+                  
+                  return (
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center text-xs font-black">
+                        <span className="text-[#fb7185]">{teamAName.split(' ')[0]} ({probA}%)</span>
+                        <span className="text-[#a855f7]">{teamBName.split(' ')[0]} ({probB}%)</span>
+                      </div>
+                      <div className="w-full h-3.5 bg-[#222] rounded-full overflow-hidden flex">
+                        <div 
+                          className="bg-gradient-to-r from-[#fb7185] to-[#f43f5e] h-full transition-all duration-1000"
+                          style={{ width: `${probA}%` }}
+                        />
+                        <div 
+                          className="bg-gradient-to-r from-[#a855f7] to-[#9333ea] h-full flex-1 transition-all duration-1000"
+                        />
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* 2. Projected Outscript */}
+              <div className="bg-[#111] border border-[#242424] rounded-2xl p-4 space-y-2">
+                <span className="text-[9px] font-black text-[#565555] tracking-widest uppercase block">SIMULATED SCRIPT</span>
+                <p className="text-xs text-[#e5e5e5] leading-relaxed font-semibold italic">
+                  "{predictionResult.predicted_outcome}"
+                </p>
+              </div>
+
+              {/* 3. Expected Player Stats */}
+              <div className="grid grid-cols-2 gap-2">
+                {/* Batsmen */}
+                <div className="bg-[#111] border border-[#242424] rounded-2xl p-4 space-y-3">
+                  <span className="text-[9px] font-black text-[#565555] tracking-widest uppercase block">KEY BATSMEN RANGE</span>
+                  <div className="space-y-2">
+                    {predictionResult.top_batsmen?.map((b: any, i: number) => (
+                      <div key={i} className="flex justify-between items-center text-[10px] border-b border-[#1f1f1f] pb-1.5 last:border-b-0 last:pb-0">
+                        <span className="text-white font-bold truncate max-w-[90px]">{b.name}</span>
+                        <span className="text-[#22c55e] font-black">{b.runs_range} runs</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Bowlers */}
+                <div className="bg-[#111] border border-[#242424] rounded-2xl p-4 space-y-3">
+                  <span className="text-[9px] font-black text-[#565555] tracking-widest uppercase block">KEY BOWLERS RANGE</span>
+                  <div className="space-y-2">
+                    {predictionResult.top_bowlers?.map((bw: any, i: number) => (
+                      <div key={i} className="flex justify-between items-center text-[10px] border-b border-[#1f1f1f] pb-1.5 last:border-b-0 last:pb-0">
+                        <span className="text-white font-bold truncate max-w-[90px]">{bw.name}</span>
+                        <span className="text-[#fb7185] font-black">{bw.wickets_range} wkts</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* 4. Tactical Matchups */}
+              <div className="bg-[#111] border border-[#242424] rounded-2xl p-4 space-y-2.5">
+                <span className="text-[9px] font-black text-[#565555] tracking-widest uppercase block">TACTICAL INSTRUCTIONS</span>
+                <ul className="space-y-1.5 list-disc pl-4 text-xs text-[#a3a3a3]">
+                  {predictionResult.tactical_matchups?.map((matchup: string, i: number) => (
+                    <li key={i} className="leading-relaxed font-semibold">{matchup}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
         </div>
-      </footer>
+      )}
     </div>
   );
 }
