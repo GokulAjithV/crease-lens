@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ArrowLeft, Plus, Pencil, Archive, Loader2, ArchiveRestore, UserPlus, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import BottomNav from '../components/layout/BottomNav';
 
 export default function ManageTeams() {
   const navigate = useNavigate();
@@ -276,6 +277,8 @@ export default function ManageTeams() {
           })()
         )}
       </main>
+
+      <BottomNav />
     </div>
   );
 }

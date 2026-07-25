@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Sparkles, Send, Loader2, Target, MapPin, Brain, ShieldAlert, Copy, Check } from 'lucide-react';
+import BottomNav from '../components/layout/BottomNav';
 
 interface Message {
   role: 'user' | 'model';
@@ -196,7 +197,7 @@ export default function ScoutingHub() {
   ];
 
   return (
-    <div className="mx-auto max-w-[390px] min-h-screen bg-[#000000] text-[#ffffff] font-sans flex flex-col relative overflow-x-hidden shadow-2xl">
+    <div className="mx-auto max-w-[390px] min-h-screen bg-[#000000] text-[#ffffff] font-sans flex flex-col relative overflow-x-hidden shadow-2xl pb-20">
       {/* Header */}
       <header className="sticky top-0 z-50 flex items-center justify-between px-4 py-4 bg-[#000000]/95 backdrop-blur border-b border-[#1a1a1a]">
         <button onClick={() => navigate('/home')} className="text-[#a3a3a3] hover:text-[#ffffff] transition-colors cursor-pointer">
@@ -520,6 +521,8 @@ export default function ScoutingHub() {
           )}
         </div>
       )}
+
+      <BottomNav />
     </div>
   );
 }
