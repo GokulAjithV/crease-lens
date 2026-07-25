@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ArrowLeft, Clock, Trophy, Sparkles, Loader2, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import BottomNav from '../components/layout/BottomNav';
 
 export default function MatchHistory() {
   const navigate = useNavigate();
@@ -76,7 +77,7 @@ export default function MatchHistory() {
   });
 
   return (
-    <div className="mx-auto max-w-[390px] min-h-screen bg-[#000000] text-[#ffffff] font-sans relative overflow-x-hidden shadow-2xl flex flex-col">
+    <div className="mx-auto max-w-[390px] min-h-screen bg-[#000000] text-[#ffffff] font-sans relative overflow-x-hidden shadow-2xl flex flex-col pb-24">
       {/* Header */}
       <header className="sticky top-0 bg-[#000000]/80 backdrop-blur-md z-40 px-4 py-4 flex items-center border-b border-[#111]">
         <button 
@@ -232,6 +233,8 @@ export default function MatchHistory() {
           </div>
         )}
       </main>
+
+      <BottomNav />
     </div>
   );
 }
