@@ -57,18 +57,16 @@ export default function Login() {
       <section className="flex flex-col items-center pt-16 pb-10">
         {/* Logo Mark */}
         <div className="relative mb-4">
-          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#7c3aed] to-[#a855f7] flex items-center justify-center shadow-[0_0_40px_rgba(124,58,237,0.3)]">
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2" />
-              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10" />
-              <path d="M2 12h20" />
-            </svg>
+          <div className="w-28 h-28 rounded-2xl overflow-hidden bg-black flex items-center justify-center shadow-[0_0_40px_rgba(124,58,237,0.3)]">
+            <img src="/logo.png" alt="Crease AI Logo" className="w-full h-full object-cover" />
           </div>
           {/* Glow ring */}
-          <div className="absolute inset-0 rounded-2xl border border-[#a855f7]/20 scale-125"></div>
+          <div className="absolute inset-0 rounded-2xl border border-[#a855f7]/20 scale-110"></div>
         </div>
-        <h1 className="text-2xl font-black text-[#ffffff] tracking-tight">CREASE</h1>
-        <p className="text-[11px] text-[#565555] tracking-[0.2em] uppercase mt-1">Score. Analyze. Dominate.</p>
+        <div className="flex flex-col items-center mt-2">
+          <h1 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-[#a855f7] tracking-tight">CREASE</h1>
+          <p className="text-[10px] font-bold text-[#a855f7] tracking-[0.3em] uppercase mt-1 bg-[#a855f7]/10 px-2 py-0.5 rounded-full border border-[#a855f7]/20">AI Powered</p>
+        </div>
       </section>
 
       {/* Welcome */}
