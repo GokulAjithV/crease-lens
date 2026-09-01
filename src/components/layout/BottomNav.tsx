@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, Trophy, Brain } from 'lucide-react';
+import { Users, Trophy, Brain, Home } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 const BatBallIcon = ({ className }: { className?: string }) => (
@@ -14,6 +14,7 @@ export default function BottomNav() {
   const navigate = useNavigate();
 
   const navItems = [
+    { id: 'home', icon: Home, label: 'HOME', path: '/home' },
     { id: 'matches', icon: BatBallIcon, label: 'MATCHES', path: '/matches' },
     { id: 'teams', icon: Users, label: 'TEAMS', path: '/teams' },
     { id: 'performers', icon: Trophy, label: 'PERFORMERS', path: '/rankings' },
@@ -25,8 +26,11 @@ export default function BottomNav() {
       <div className="flex justify-between items-center gap-1">
         {navItems.map((item) => {
           const isActive = (() => {
+            if (item.id === 'home') {
+              return location.pathname === '/home' || location.pathname === '/';
+            }
             if (item.id === 'matches') {
-              return location.pathname === '/matches' || location.pathname === '/home' || location.pathname.startsWith('/match');
+              return location.pathname === '/matches' || location.pathname.startsWith('/match');
             }
             if (item.id === 'teams') {
               return location.pathname.startsWith('/team');
