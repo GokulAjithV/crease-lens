@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { ArrowLeft, MoreVertical, Sparkles, Trophy, Loader2, AlertCircle } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { ArrowLeft, MoreVertical, Sparkles, Trophy, Loader2, AlertCircle, Camera } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { AVATAR_ACCEPT, uploadAvatar, validateAvatarFile } from '../lib/api';
 
 type ProfileTab = 'batting' | 'bowling' | 'history';
 
@@ -14,6 +15,40 @@ export default function PlayerProfile() {
   const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarError, setAvatarError] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const currentUser = (() => {
+    try {
+      return JSON.parse(localStorage.getItem('user') || 'null');
+    } catch {
+      return null;
+    }
+  })();
+  const isOwnProfile = !!currentUser && currentUser.id === playerId;
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // allows re-selecting the same file
+    if (!file) return;
+    const problem = validateAvatarFile(file);
+    if (problem) {
+      setAvatarError(problem);
+      return;
+    }
+    setAvatarError('');
+    setUploadingAvatar(true);
+    try {
+      const url = await uploadAvatar(file);
+      setPlayer((prev: any) => ({ ...prev, avatar_url: url }));
+    } catch (err: any) {
+      setAvatarError(err.message || 'Upload failed');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
 
   useEffect(() => {
     async function fetchProfileData() {
@@ -143,12 +178,44 @@ export default function PlayerProfile() {
           <div className="flex items-center gap-4">
             {/* Avatar */}
             <div className="relative flex-shrink-0">
-              <div 
-                className="w-16 h-16 rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(168,85,247,0.25)] ring-2 ring-[#fbbf24]/40 text-black font-black text-2xl"
-                style={{ backgroundColor: player.avatar_color || '#7c3aed' }}
-              >
-                {initials}
-              </div>
+              {player.avatar_url ? (
+                <img
+                  src={player.avatar_url}
+                  alt={fullName}
+                  className="w-16 h-16 rounded-full object-cover shadow-[0_0_20px_rgba(168,85,247,0.25)] ring-2 ring-[#fbbf24]/40"
+                />
+              ) : (
+                <div
+                  className="w-16 h-16 rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(168,85,247,0.25)] ring-2 ring-[#fbbf24]/40 text-black font-black text-2xl"
+                  style={{ backgroundColor: player.avatar_color || '#7c3aed' }}
+                >
+                  {initials}
+                </div>
+              )}
+              {isOwnProfile && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingAvatar}
+                    aria-label="Change profile photo"
+                    className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-[#a855f7] flex items-center justify-center ring-2 ring-[#000] disabled:opacity-60 cursor-pointer"
+                  >
+                    {uploadingAvatar ? (
+                      <Loader2 size={11} className="animate-spin text-[#ffffff]" />
+                    ) : (
+                      <Camera size={11} className="text-[#ffffff]" />
+                    )}
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept={AVATAR_ACCEPT}
+                    onChange={handleAvatarChange}
+                    className="hidden"
+                  />
+                </>
+              )}
             </div>
             {/* Info */}
             <div className="flex-1 min-w-0">
@@ -171,6 +238,7 @@ export default function PlayerProfile() {
               <span className="text-2xl font-black text-[#c799ff]">{ratingDisplay}</span>
             </div>
           </div>
+          {avatarError && <p className="text-[10px] text-red-500 mt-2">{avatarError}</p>}
         </div>
       </div>
 

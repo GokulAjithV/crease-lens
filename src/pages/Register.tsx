@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Eye, EyeOff, Phone, Lock, Mail, User, Camera, ChevronDown, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { AVATAR_ACCEPT, uploadAvatar, validateAvatarFile } from '../lib/api';
 
 type CricketRole = 'batsman' | 'bowler' | 'allrounder' | 'keeper';
 type BatHand = 'right' | 'left';
@@ -21,6 +22,34 @@ export default function Register() {
 
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Preview via a temporary in-memory URL; revoke it to free memory
+  useEffect(() => {
+    if (!avatarFile) {
+      setAvatarPreview(null);
+      return;
+    }
+    const url = URL.createObjectURL(avatarFile);
+    setAvatarPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [avatarFile]);
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // allows re-selecting the same file
+    if (!file) return;
+    const problem = validateAvatarFile(file);
+    if (problem) {
+      setError(problem);
+      return;
+    }
+    setError('');
+    setAvatarFile(file);
+  };
 
   const roles: { id: CricketRole; label: string }[] = [
     { id: 'batsman', label: 'Batsman' },
@@ -65,6 +94,16 @@ export default function Register() {
       localStorage.setItem('token', data.access_token);
       localStorage.setItem('user', JSON.stringify(data.user));
 
+      // Account now exists and we have a token, so the photo can be uploaded
+      if (avatarFile) {
+        try {
+          await uploadAvatar(avatarFile);
+        } catch (uploadErr) {
+          console.warn('Avatar upload failed:', uploadErr);
+          window.alert('Account created, but your photo could not be uploaded. You can add it from your profile.');
+        }
+      }
+
       const pendingJoinToken = localStorage.getItem('pendingJoinToken');
       if (pendingJoinToken) {
         localStorage.removeItem('pendingJoinToken');
@@ -101,17 +140,44 @@ export default function Register() {
         {/* Avatar Upload */}
         <section className="flex flex-col items-center py-6">
           <div className="relative mb-2">
-            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#7c3aed] to-[#a855f7] flex items-center justify-center shadow-[0_0_25px_rgba(124,58,237,0.25)]">
-              <User size={30} className="text-[#ffffff]/60" />
-            </div>
             <button
               type="button"
+              onClick={() => fileInputRef.current?.click()}
+              aria-label="Choose profile photo"
+              className="w-20 h-20 rounded-full overflow-hidden bg-gradient-to-br from-[#7c3aed] to-[#a855f7] flex items-center justify-center shadow-[0_0_25px_rgba(124,58,237,0.25)]"
+            >
+              {avatarPreview ? (
+                <img src={avatarPreview} alt="Profile preview" className="w-full h-full object-cover" />
+              ) : (
+                <User size={30} className="text-[#ffffff]/60" />
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              aria-label="Choose profile photo"
               className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-[#a855f7] flex items-center justify-center ring-3 ring-[#000]"
             >
               <Camera size={12} className="text-[#ffffff]" />
             </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept={AVATAR_ACCEPT}
+              onChange={handleAvatarChange}
+              className="hidden"
+            />
           </div>
-          <span className="text-[10px] text-[#a3a3a3]">Add Photo</span>
+          <span className="text-[10px] text-[#a3a3a3]">{avatarFile ? 'Change Photo' : 'Add Photo'}</span>
+          {avatarFile && (
+            <button
+              type="button"
+              onClick={() => setAvatarFile(null)}
+              className="text-[10px] text-[#a3a3a3] underline mt-1"
+            >
+              Remove
+            </button>
+          )}
         </section>
 
         {/* Input Fields */}
